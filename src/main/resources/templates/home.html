@@ -17,8 +17,12 @@
           version    : 'v19.0'
         });
           
-        FB.AppEvents.logPageView();   
-          
+        FB.AppEvents.logPageView();
+        
+        // Check login status on page load
+        FB.getLoginStatus(function(response) {
+          statusChangeCallback(response);
+        });
       };
 
       (function(d, s, id){
@@ -37,11 +41,22 @@
             <a href="/" class="text-2xl font-bold text-pink-600">📣 Shout</a>
             <div class="flex items-center space-x-4">
                 <input type="text" id="search" placeholder="Search users..." class="px-4 py-2 border rounded-lg" />
+                
+                <!-- Facebook Login Status Container -->
+                <div id="status"></div>
+                
                 <sec:authorize access="!isAuthenticated()">
-                    <a href="/login" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-lg font-medium transition">
+                    <div id="login-button-container" class="hidden">
+                        <fb:login-button 
+                          scope="public_profile,email"
+                          onlogin="checkLoginState();">
+                        </fb:login-button>
+                    </div>
+                    <a id="fallback-login" href="/login" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-lg font-medium transition">
                         Login with Instagram
                     </a>
                 </sec:authorize>
+                
                 <sec:authorize access="isAuthenticated()">
                     <a href="/dashboard" class="text-gray-700 hover:text-pink-600">Dashboard</a>
                     <a href="/notifications" class="relative text-gray-700 hover:text-pink-600">
@@ -121,6 +136,97 @@
 
     <script>
         let currentPage = 0;
+
+        /**
+         * FACEBOOK LOGIN STATUS MANAGEMENT
+         */
+        
+        // Main callback that handles login status response
+        function statusChangeCallback(response) {
+          console.log('Facebook login status:', response.status);
+          
+          if (response.status === 'connected') {
+            // User is logged into Facebook AND your app
+            console.log('User is connected to Facebook');
+            handleConnected(response);
+          } else if (response.status === 'not_authorized') {
+            // User is logged into Facebook but not your app
+            console.log('User is logged into Facebook but not your app');
+            handleNotAuthorized(response);
+          } else {
+            // User is not logged into Facebook
+            console.log('User is not logged into Facebook');
+            handleUnknown(response);
+          }
+        }
+        
+        // Handle connected state
+        function handleConnected(response) {
+          document.getElementById('status').innerHTML = '';
+          console.log('Access Token:', response.authResponse.accessToken);
+          console.log('User ID:', response.authResponse.userID);
+          console.log('Expires In:', response.authResponse.expiresIn);
+          
+          // Get user info from Facebook
+          FB.api('/me?fields=id,name,email,picture', function(userInfo) {
+            console.log('User info:', userInfo);
+            // You can now use userInfo to create/update user in your app
+            syncUserWithBackend(response.authResponse, userInfo);
+          });
+        }
+        
+        // Handle not authorized state
+        function handleNotAuthorized(response) {
+          document.getElementById('status').innerHTML = '';
+          console.log('User logged into Facebook but not authorized for app');
+          // Show login button or redirect to login
+        }
+        
+        // Handle unknown state (not logged into Facebook)
+        function handleUnknown(response) {
+          document.getElementById('status').innerHTML = '';
+          console.log('User not logged into Facebook');
+          // Show login button
+        }
+        
+        // Callback for Facebook Login Button
+        function checkLoginState() {
+          FB.getLoginStatus(function(response) {
+            statusChangeCallback(response);
+          });
+        }
+        
+        // Sync user with backend
+        function syncUserWithBackend(authResponse, userInfo) {
+          fetch('/api/auth/facebook', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              accessToken: authResponse.accessToken,
+              userId: authResponse.userID,
+              expiresIn: authResponse.expiresIn,
+              signedRequest: authResponse.signedRequest,
+              fbName: userInfo.name,
+              fbEmail: userInfo.email,
+              fbProfilePicture: userInfo.picture.data.url
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log('User synced with backend:', data);
+            // Redirect to dashboard on success
+            if (data.success) {
+              window.location.href = '/dashboard';
+            }
+          })
+          .catch(error => console.error('Error syncing user:', error));
+        }
+
+        /**
+         * EXISTING APP FUNCTIONALITY
+         */
 
         function openModal(username) {
             document.getElementById('target-username').value = username;
