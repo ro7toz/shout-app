@@ -13,6 +13,8 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
+    
+    // ===== INSTAGRAM QUERIES =====
     Optional<User> findByInstagramId(String instagramId);
     
     Page<User> findByIsActive(Boolean isActive, Pageable pageable);
@@ -27,4 +29,36 @@ public interface UserRepository extends JpaRepository<User, String> {
     
     @Query("SELECT u FROM User u WHERE u.category = :category AND u.isActive = true ORDER BY u.averageRating DESC")
     List<User> findTopRatedByCategory(@Param("category") String category);
+    
+    // ===== FACEBOOK AUTHENTICATION QUERIES =====
+    /**
+     * Find user by Facebook ID
+     * Used during login to check if user already exists
+     */
+    Optional<User> findByFacebookId(String facebookId);
+    
+    /**
+     * Find user by Facebook access token
+     * Used to refresh sessions
+     */
+    Optional<User> findByFacebookAccessToken(String facebookAccessToken);
+    
+    /**
+     * Find user by email
+     * Used as fallback if Facebook ID exists but email is unique identifier
+     */
+    Optional<User> findByEmail(String email);
+    
+    /**
+     * Check if Facebook ID already exists
+     * Used before creating new user
+     */
+    boolean existsByFacebookId(String facebookId);
+    
+    /**
+     * Find all users who logged in via Facebook
+     * Used for analytics/reporting
+     */
+    @Query("SELECT u FROM User u WHERE u.facebookId IS NOT NULL AND u.isActive = true")
+    List<User> findAllFacebookUsers();
 }
