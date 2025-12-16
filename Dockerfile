@@ -1,46 +1,17 @@
-# Stage 1: Build
+# Multi-stage build
 FROM maven:3.9-eclipse-temurin-17 AS builder
-
 WORKDIR /build
-
-# Copy pom.xml and download dependencies
 COPY pom.xml .
 RUN mvn dependency:go-offline
-
-# Copy source code
 COPY src ./src
-
-# Build application
 RUN mvn clean package -DskipTests
 
-# Stage 2: Runtime
+# Runtime
 FROM eclipse-temurin:17-jdk-alpine
-
 WORKDIR /app
-
-# Install curl for health checks
-RUN apk add --no-cache curl
-
-# Copy JAR from builder
 COPY --from=builder /build/target/shout-app-1.0.0.jar app.jar
-
-# Create non-root user
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser && \
-    chown -R appuser:appuser /app
-
+RUN adduser -D appuser && chown appuser:appuser /app && mkdir -p /app/logs && chown appuser:appuser /app/logs
 USER appuser
-
-# Expose port
 EXPOSE 8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/actuator/health/liveness || exit 1
-
-# Set environment
-ENV SPRING_PROFILES_ACTIVE=prod
-ENV JAVA_OPTS="-Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
-
-# Run application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 CMD java -cp /app/app.jar org.springframework.boot.loader.launch.JarLauncher curl -f http://localhost:8080/actuator/health || exit 1
+CMD ["java", "-jar", "app.jar"]
