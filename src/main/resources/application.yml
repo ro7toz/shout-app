@@ -1,0 +1,87 @@
+spring:
+  application:
+    name: shout
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  datasource:
+    url: jdbc:postgresql://localhost:5432/shoutdb
+    username: shoutuser
+    password: password123
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+  security:
+    oauth2:
+      client:
+        registration:
+          instagram:
+            client-id: ${INSTAGRAM_CLIENT_ID:your_client_id_here}
+            client-secret: ${INSTAGRAM_CLIENT_SECRET:your_client_secret_here}
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            authorization-grant-type: authorization_code
+            scope: user_profile,user_media
+            client-name: Instagram
+        provider:
+          instagram:
+            authorization-uri: https://api.instagram.com/oauth/authorize
+            token-uri: https://api.instagram.com/oauth/access_token
+            user-info-uri: https://graph.instagram.com/me?fields=id,username,account_type,media_count,followers_count,profile_picture_url,name,biography,website
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      instagram:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1000
+    instances:
+      instagram:
+        baseConfig: default
+
+logging:
+  level:
+    root: INFO
+    com.shout: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,circuitbreakers,retries
+  endpoint:
+    health:
+      show-details: always
