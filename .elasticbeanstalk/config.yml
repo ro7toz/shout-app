@@ -1,0 +1,20 @@
+branch-defaults:
+  main:
+    environment: shoutx-prod
+    group_suffix: null
+
+environment-defaults:
+  shoutx-prod:
+    branch: main
+    repository: null
+
+global:
+  application_name: shoutx
+  default_platform: Java 17 running on 64bit Amazon Linux 2
+  default_region: us-east-1
+  include_git_submodules: true
+  instance_profile: null
+  platform_name: null
+  platform_version: null
+  sc: git
+  workspace_type: Application
