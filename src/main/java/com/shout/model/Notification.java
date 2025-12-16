@@ -1,9 +1,7 @@
 package com.shout.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,14 +10,17 @@ import java.time.LocalDateTime;
     @Index(name = "idx_notification_read", columnList = "user_id, is_read")
 })
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"user", "relatedRequest"})
+@EqualsAndHashCode(exclude = {"user", "relatedRequest"})
 public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "username")
     private User user;
     
@@ -30,10 +31,12 @@ public class Notification {
     private String message;
     private String actionUrl;
     
+    @Builder.Default
     private Boolean isRead = false;
+    
     private LocalDateTime createdAt;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "related_request_id")
     private ShoutoutRequest relatedRequest;
 
