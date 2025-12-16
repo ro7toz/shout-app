@@ -4,58 +4,65 @@ import com.shout.model.User;
 import com.shout.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
+@Transactional
 @Slf4j
+@RequiredArgsConstructor
 public class UserSyncService {
-
     private final UserRepository userRepository;
     private final InstagramIntegrationService instagramService;
 
-    @Transactional
-    public User syncOrCreateUser(OAuth2User oAuth2User) {
-        String username = (String) oAuth2User.getAttributes().get("login");
-        if (username == null) {
-            username = (String) oAuth2User.getAttributes().get("username");
-        }
-        String accessToken = oAuth2User.getName();
-
-        Optional<User> existingUser = userRepository.findByUsername(username);
-
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
+    @Async
+    public void syncOrCreateUser(String username, String accessToken) {
+        try {
+            // Fetch Instagram profile data
+            var instagramProfile = instagramService.getUserProfile(username, accessToken);
+            
+            User user = userRepository.findById(username)
+                .orElse(new User());
+            
+            user.setUsername(username);
+            user.setInstagramId(instagramProfile.getId());
+            user.setFullName(instagramProfile.getFullName());
+            user.setProfilePicUrl(instagramProfile.getProfilePicUrl());
+            user.setFollowerCount(instagramProfile.getFollowerCount());
+            user.setBiography(instagramProfile.getBiography());
+            user.setWebsiteUrl(instagramProfile.getWebsiteUrl());
+            user.setAccountType(instagramProfile.getAccountType());
             user.setAccessToken(accessToken);
-            user.setTokenExpiresAt(LocalDateTime.now().plusHours(24));
-            user.setLastUpdatedAt(LocalDateTime.now());
+            user.setTokenExpiresAt(LocalDateTime.now().plusMonths(2));
             user.setIsActive(true);
-            return userRepository.save(user);
+            
+            // Infer category from bio or use default
+            user.setCategory(inferCategory(instagramProfile.getBiography()));
+            
+            userRepository.save(user);
+            log.info("User {} synced successfully", username);
+        } catch (Exception e) {
+            log.error("Failed to sync user {}", username, e);
+            throw new RuntimeException("Failed to sync Instagram profile: " + e.getMessage());
         }
+    }
 
-        User newUser = new User();
-        newUser.setUsername(username);
-        newUser.setInstagramId((String) oAuth2User.getAttributes().get("id"));
-        newUser.setFullName((String) oAuth2User.getAttributes().getOrDefault("name", username));
-        newUser.setProfilePicUrl((String) oAuth2User.getAttributes().get("picture"));
-        newUser.setCategory("General");
-        newUser.setFollowerCount(((Number) oAuth2User.getAttributes().getOrDefault("followers_count", 0)).intValue());
-        newUser.setBiography((String) oAuth2User.getAttributes().getOrDefault("biography", ""));
-        newUser.setWebsiteUrl((String) oAuth2User.getAttributes().getOrDefault("website", ""));
-        newUser.setAccountType((String) oAuth2User.getAttributes().getOrDefault("account_type", "PERSONAL"));
-        newUser.setAccessToken(accessToken);
-        newUser.setTokenExpiresAt(LocalDateTime.now().plusHours(24));
-        newUser.setIsActive(true);
-        newUser.setAverageRating(5.0);
-        newUser.setTotalRatings(0);
-
-        User saved = userRepository.save(newUser);
-        log.info("New user synced from Instagram: {}", username);
-        return saved;
+    private String inferCategory(String biography) {
+        if (biography == null) return "General";
+        
+        String bio = biography.toLowerCase();
+        if (bio.contains("music") || bio.contains("singer") || bio.contains("dj")) return "Music";
+        if (bio.contains("fitness") || bio.contains("gym") || bio.contains("trainer")) return "Fitness";
+        if (bio.contains("beauty") || bio.contains("makeup") || bio.contains("cosmetics")) return "Beauty";
+        if (bio.contains("fashion") || bio.contains("style") || bio.contains("clothes")) return "Fashion";
+        if (bio.contains("food") || bio.contains("chef") || bio.contains("recipe")) return "Food";
+        if (bio.contains("travel") || bio.contains("adventure") || bio.contains("explore")) return "Travel";
+        if (bio.contains("tech") || bio.contains("coding") || bio.contains("developer")) return "Technology";
+        if (bio.contains("business") || bio.contains("entrepreneur") || bio.contains("startup")) return "Business";
+        
+        return "General";
     }
 }
