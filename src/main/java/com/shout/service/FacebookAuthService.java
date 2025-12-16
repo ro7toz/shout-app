@@ -7,24 +7,21 @@ import org.springframework.web.client.RestTemplate;
 import com.shout.dto.FacebookAuthRequest;
 import com.shout.dto.AuthResponse;
 import com.shout.dto.AuthResponse.UserInfoResponse;
-import com.shout.entity.User;
+import com.shout.model.User;
 import com.shout.repository.UserRepository;
-import com.shout.security.JwtTokenProvider;
 import java.util.Optional;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Service for handling Facebook authentication
- * Validates tokens, syncs users, and creates JWT tokens
+ * Validates tokens, syncs users, and integrates with Instagram data
  */
 @Service
 public class FacebookAuthService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
 
     @Value("${facebook.app-id}")
     private String facebookAppId;
@@ -72,7 +69,7 @@ public class FacebookAuthService {
      * Creates new user if doesn't exist, updates if exists
      * 
      * @param request Facebook auth request with user details
-     * @return AuthResponse with JWT token and user info
+     * @return AuthResponse with user info
      */
     public AuthResponse syncOrCreateUser(FacebookAuthRequest request) {
         try {
@@ -91,34 +88,32 @@ public class FacebookAuthService {
             } else {
                 // Create new user
                 user = new User();
+                user.setUsername(generateUsernameFromEmail(request.getFbEmail()));
                 user.setFacebookId(request.getUserId());
                 user.setFacebookAccessToken(request.getAccessToken());
                 user.setFacebookTokenExpiresAt(System.currentTimeMillis() + (request.getExpiresIn() * 1000));
                 user.setName(request.getFbName());
                 user.setEmail(request.getFbEmail());
                 user.setProfilePicture(request.getFbProfilePicture());
-                user.setUsername(generateUsernameFromEmail(request.getFbEmail()));
-                user.setEnabled(true);
+                user.setFullName(request.getFbName());
+                user.setIsActive(true);
             }
 
             // Save user to database
             user = userRepository.save(user);
 
-            // Generate JWT token
-            String jwtToken = jwtTokenProvider.generateToken(user.getId(), user.getEmail());
-
             // Build user info response
             UserInfoResponse userInfo = new UserInfoResponse(
-                user.getId().toString(),
+                user.getUsername(),
                 user.getUsername(),
                 user.getEmail(),
                 user.getProfilePicture(),
-                user.getFollowerCount()
+                user.getFollowerCount() != null ? user.getFollowerCount().longValue() : 0L
             );
             userInfo.setInstagramId(user.getFacebookId());
             userInfo.setBio(user.getBio());
 
-            return new AuthResponse(true, "Authentication successful", jwtToken, userInfo);
+            return new AuthResponse(true, "Authentication successful", user.getUsername(), userInfo);
 
         } catch (Exception e) {
             return new AuthResponse(
@@ -134,7 +129,7 @@ public class FacebookAuthService {
      * Refresh user session by validating existing token
      * 
      * @param accessToken Current Facebook access token
-     * @return AuthResponse with new JWT token if valid
+     * @return AuthResponse with success status
      */
     public AuthResponse refreshSession(String accessToken) {
         try {
@@ -162,19 +157,16 @@ public class FacebookAuthService {
 
             User user = userOpt.get();
 
-            // Generate new JWT token
-            String newJwtToken = jwtTokenProvider.generateToken(user.getId(), user.getEmail());
-
             // Build user info response
             UserInfoResponse userInfo = new UserInfoResponse(
-                user.getId().toString(),
+                user.getUsername(),
                 user.getUsername(),
                 user.getEmail(),
                 user.getProfilePicture(),
-                user.getFollowerCount()
+                user.getFollowerCount() != null ? user.getFollowerCount().longValue() : 0L
             );
 
-            return new AuthResponse(true, "Session refreshed", newJwtToken, userInfo);
+            return new AuthResponse(true, "Session refreshed", user.getUsername(), userInfo);
 
         } catch (Exception e) {
             return new AuthResponse(
@@ -189,14 +181,21 @@ public class FacebookAuthService {
     /**
      * Generate username from email
      * Used when creating new user from Facebook login
+     * Falls back to UUID if email not available
      * 
      * @param email User's email
      * @return Generated username
      */
     private String generateUsernameFromEmail(String email) {
         if (email != null && email.contains("@")) {
-            return email.substring(0, email.indexOf("@"));
+            String baseUsername = email.substring(0, email.indexOf("@")).toLowerCase();
+            // Check if username exists, if so add random suffix
+            if (userRepository.existsById(baseUsername)) {
+                return baseUsername + "_" + UUID.randomUUID().toString().substring(0, 8);
+            }
+            return baseUsername;
         }
-        return "user_" + System.currentTimeMillis();
+        // Fallback: generate from UUID
+        return "user_" + UUID.randomUUID().toString().substring(0, 12);
     }
 }
