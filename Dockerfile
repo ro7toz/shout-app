@@ -7,7 +7,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Runtime
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:25-jdk-alpine
 WORKDIR /app
 COPY --from=builder /build/target/shout-app-1.0.0.jar app.jar
 RUN adduser -D appuser && chown appuser:appuser /app && mkdir -p /app/logs && chown appuser:appuser /app/logs
