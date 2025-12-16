@@ -1,9 +1,7 @@
 package com.shout.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,18 +9,21 @@ import java.time.LocalDateTime;
     @Index(name = "idx_rating_rated_user", columnList = "rated_user_id")
 })
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"rater", "ratedUser", "relatedRequest"})
+@EqualsAndHashCode(exclude = {"rater", "ratedUser", "relatedRequest"})
 public class Rating {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rater_id", referencedColumnName = "username")
     private User rater;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rated_user_id", referencedColumnName = "username")
     private User ratedUser;
     
@@ -34,7 +35,7 @@ public class Rating {
     
     private LocalDateTime createdAt;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "related_request_id")
     private ShoutoutRequest relatedRequest;
 
