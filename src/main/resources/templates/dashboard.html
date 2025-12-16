@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Shout</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org"></script>
 </head>
 <body class="bg-gray-50">
-
     <!-- Navigation -->
     <nav class="bg-white shadow sticky top-0 z-40">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -15,83 +15,97 @@
             <div class="flex items-center space-x-4">
                 <a href="/" class="text-gray-700 hover:text-pink-600">Explore</a>
                 <a href="/dashboard" class="text-pink-600 font-medium">Dashboard</a>
-                <a href="/logout" class="text-red-500 hover:text-red-700">Logout</a>
+                <a href="/notifications" class="relative text-gray-700 hover:text-pink-600">
+                    🔔
+                    <span th:if="${unreadCount > 0}" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1" th:text="${unreadCount}"></span>
+                </a>
+                <a href="/logout" class="text-red-500 hover:text-red-700 font-medium">Logout</a>
             </div>
         </div>
     </nav>
 
-    <div class="container mx-auto px-4 py-8">
-        <!-- User Profile Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8" th:if="${user}">
+    <!-- User Profile Header -->
+    <section class="bg-white shadow">
+        <div class="container mx-auto px-4 py-12">
             <div class="flex items-center space-x-6">
-                <img th:src="${user.profilePicUrl}" class="h-24 w-24 rounded-full border-4 border-pink-500" />
+                <img th:src="${user.profilePicUrl}" alt="Profile" class="w-24 h-24 rounded-full" />
                 <div>
                     <h1 class="text-3xl font-bold" th:text="${user.fullName}"></h1>
-                    <p class="text-gray-600" th:text="'@' + ${user.username}"></p>
-                    <p class="text-sm text-gray-500 mt-2" th:text="${user.biography}"></p>
-                    <div class="flex items-center space-x-4 mt-4">
-                        <div>
-                            <p class="font-bold text-lg" th:text="${user.followerCount} + ' followers'"></p>
-                        </div>
-                        <div>
-                            <p class="font-bold text-lg text-yellow-500" th:text="${user.averageRating} + '⭐ (' + ${user.totalRatings} + ' ratings)'"></p>
-                        </div>
-                    </div>
+                    <p class="text-gray-600 text-lg">@<span th:text="${user.username}"></span></p>
+                    <p class="text-gray-700 mt-2">
+                        <span th:text="${user.followerCount}"></span> followers
+                        <span class="ml-4">⭐ <span th:text="${#numbers.formatDecimal(user.averageRating, 1, 2)}"></span> (<span th:text="${user.totalRatings}"></span> ratings)</span>
+                    </p>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Tabs -->
-        <div class="flex space-x-4 mb-6 border-b border-gray-200">
-            <button class="tab-btn active px-4 py-2 font-medium text-pink-600 border-b-2 border-pink-600" onclick="switchTab('pending')">Pending Requests</button>
-            <button class="tab-btn px-4 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-pink-600" onclick="switchTab('sent')">Sent Requests</button>
-            <button class="tab-btn px-4 py-2 font-medium text-gray-600 border-b-2 border-transparent hover:text-pink-600" onclick="switchTab('circle')">My Circle</button>
+    <!-- Tabs -->
+    <div class="bg-white border-b">
+        <div class="container mx-auto px-4 flex space-x-8">
+            <button class="tab-button py-4 px-2 border-b-2 border-pink-600 text-pink-600 font-bold" data-tab="pending">
+                Pending Requests
+            </button>
+            <button class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 font-bold hover:text-pink-600" data-tab="sent">
+                Sent Requests
+            </button>
+            <button class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 font-bold hover:text-pink-600" data-tab="circle">
+                My Circle
+            </button>
         </div>
+    </div>
 
+    <!-- Content -->
+    <div class="container mx-auto px-4 py-12">
         <!-- Pending Requests Tab -->
-        <div id="pending-tab" class="tab-content">
-            <div th:if="${pendingRequests.isEmpty()}" class="text-center py-8 text-gray-500">
-                <p>No pending requests</p>
-            </div>
-            <div class="space-y-4" th:unless="${pendingRequests.isEmpty()}">
-                <div th:each="req : ${pendingRequests}" class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex justify-between items-start">
+        <div id="pending" class="tab-content">
+            <h2 class="text-2xl font-bold mb-6">Pending Requests</h2>
+            <div class="grid gap-4">
+                <div th:each="req : ${pendingRequests}" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+                    <div class="flex justify-between items-start mb-4">
                         <div>
-                            <h3 class="text-lg font-bold" th:text="${req.requester.fullName}"></h3>
-                            <p class="text-gray-600" th:text="'@' + ${req.requester.username}"></p>
-                            <p class="text-sm text-gray-500 mt-2">Requested: <span th:text="${#temporals.format(req.createdAt, 'MMM dd, HH:mm')}"></span></p>
-                            <p class="text-sm text-blue-600 mt-2" th:text="'Post Link: ' + ${req.postLink}"></p>
+                            <h3 class="text-lg font-bold">Request from <span th:text="${req.requesterUsername}"></span></h3>
+                            <p class="text-gray-600" th:text="'Sent: ' + ${#temporals.format(req.createdAt, 'MMM dd, yyyy HH:mm')}"></p>
                         </div>
-                        <div class="flex space-x-2">
-                            <form th:action="'/shoutout/accept/' + ${req.id}" method="post" class="inline">
-                                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition">Accept</button>
-                            </form>
-                            <form th:action="'/shoutout/cancel/' + ${req.id}" method="post" class="inline">
-                                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition">Decline</button>
-                            </form>
-                        </div>
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">NEW</span>
+                    </div>
+                    <div class="mb-4">
+                        <a th:href="${req.postLink}" target="_blank" class="text-blue-600 hover:underline">View Instagram Post</a>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button th:hx-post="'/api/shoutout/' + ${req.id} + '/accept'" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold transition">
+                            Accept
+                        </button>
+                        <button class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold transition">
+                            Decline
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Sent Requests Tab -->
-        <div id="sent-tab" class="tab-content hidden">
-            <div th:if="${sentRequests.isEmpty()}" class="text-center py-8 text-gray-500">
-                <p>No sent requests</p>
-            </div>
-            <div class="space-y-4" th:unless="${sentRequests.isEmpty()}">
-                <div th:each="req : ${sentRequests}" class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex justify-between items-start">
+        <div id="sent" class="tab-content hidden">
+            <h2 class="text-2xl font-bold mb-6">Sent Requests</h2>
+            <div class="grid gap-4">
+                <div th:each="req : ${sentRequests}" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+                    <div class="flex justify-between items-start mb-4">
                         <div>
-                            <h3 class="text-lg font-bold" th:text="${req.target.fullName}"></h3>
-                            <p class="text-gray-600" th:text="'@' + ${req.target.username}"></p>
-                            <p class="text-sm font-semibold mt-2" th:classappend="${req.status == 'PENDING' ? 'text-yellow-600' : 'text-green-600'}" th:text="${req.status}"></p>
-                            <p th:if="${req.status == 'ACCEPTED'}" class="text-sm text-gray-500 mt-2" th:text="'Hours remaining: ' + ${req.getHoursRemaining()}"></p>
+                            <h3 class="text-lg font-bold">Request to <span th:text="${req.targetUsername}"></span></h3>
+                            <p class="text-gray-600" th:text="'Sent: ' + ${#temporals.format(req.createdAt, 'MMM dd, yyyy HH:mm')}"></p>
                         </div>
-                        <div>
-                            <span th:classappend="${req.status == 'PENDING' ? 'bg-yellow-100 text-yellow-800' : req.status == 'ACCEPTED' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}"
-                                  class="px-3 py-1 rounded-full text-sm font-medium" th:text="${req.status}"></span>
+                        <span class="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-bold" th:text="${req.status}"></span>
+                    </div>
+                    <div class="mb-4" th:if="${req.status == 'ACCEPTED'}">
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <p class="text-sm font-bold">⏰ <span th:text="${req.hoursRemaining}"></span> hours remaining</p>
+                            <div class="mt-4 flex space-x-2">
+                                <button th:if="!${req.requesterPosted}" th:hx-post="'/api/shoutout/' + ${req.id} + '/posted'" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">
+                                    I Posted It!
+                                </button>
+                                <span th:if="${req.requesterPosted}" class="text-green-600 font-bold">✅ You posted</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -99,35 +113,30 @@
         </div>
 
         <!-- Circle Tab -->
-        <div id="circle-tab" class="tab-content hidden">
-            <div th:if="${user.circle.isEmpty()}" class="text-center py-8 text-gray-500">
-                <p>Your circle is empty. Complete shoutout exchanges to add friends!</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" th:unless="${user.circle.isEmpty()}">
-                <div th:each="friend : ${user.circle}" class="bg-white rounded-lg shadow-md p-4 flex items-center space-x-4">
-                    <img th:src="${friend.profilePicUrl}" class="h-16 w-16 rounded-full" />
-                    <div>
-                        <h4 class="font-bold" th:text="${friend.fullName}"></h4>
-                        <p class="text-sm text-gray-600" th:text="'@' + ${friend.username}"></p>
-                        <a th:href="'https://instagram.com/' + ${friend.username}" target="_blank" class="text-sm text-pink-600 hover:underline">Visit Profile</a>
-                    </div>
-                </div>
+        <div id="circle" class="tab-content hidden">
+            <h2 class="text-2xl font-bold mb-6">My Circle</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Friend cards would go here -->
             </div>
         </div>
     </div>
 
     <script>
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('text-pink-600', 'border-pink-600');
-                btn.classList.add('text-gray-600', 'border-transparent');
-            });
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Update active tab
+                document.querySelectorAll('.tab-button').forEach(b => {
+                    b.classList.remove('border-pink-600', 'text-pink-600');
+                    b.classList.add('border-transparent', 'text-gray-600');
+                });
+                btn.classList.add('border-pink-600', 'text-pink-600');
+                btn.classList.remove('border-transparent', 'text-gray-600');
 
-            document.getElementById(tabName + '-tab').classList.remove('hidden');
-            event.target.classList.add('text-pink-600', 'border-pink-600');
-            event.target.classList.remove('text-gray-600', 'border-transparent');
-        }
+                // Update content
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                document.getElementById(btn.dataset.tab).classList.remove('hidden');
+            });
+        });
     </script>
 </body>
 </html>
