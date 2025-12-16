@@ -1,6 +1,9 @@
 spring:
   application:
-    name: shout
+    name: shout-app
+    description: Instagram-based influencer shoutout exchange platform
+  profiles:
+    active: dev
   jpa:
     hibernate:
       ddl-auto: update
@@ -8,21 +11,42 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        use_sql_comments: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
   datasource:
     url: jdbc:postgresql://localhost:5432/shoutdb
     username: shoutuser
     password: password123
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      max-lifetime: 600000
+      auto-commit: true
   data:
     redis:
       host: localhost
       port: 6379
       timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
   cache:
     type: redis
     redis:
       time-to-live: 3600000
+  servlet:
+    session:
+      timeout: 30m
+      store-type: redis
   security:
     oauth2:
       client:
@@ -49,8 +73,10 @@ resilience4j:
         minimumNumberOfCalls: 5
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 5s
+        waitDurationInOpenState: 30s
         failureRateThreshold: 50
+        slowCallRateThreshold: 100
+        slowCallDurationThreshold: 2000
         eventConsumerBufferSize: 10
     instances:
       instagram:
@@ -60,6 +86,9 @@ resilience4j:
       default:
         maxAttempts: 3
         waitDuration: 1000
+        retryExceptions:
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
     instances:
       instagram:
         baseConfig: default
@@ -68,20 +97,61 @@ logging:
   level:
     root: INFO
     com.shout: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.security: INFO
     org.springframework.web: INFO
+    org.springframework.data: DEBUG
     org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/shout.log
+    max-size: 10MB
+    max-history: 30
 
 server:
   port: 8080
   servlet:
     context-path: /
+    session:
+      timeout: 30m
+  error:
+    include-message: always
+    include-stacktrace: on_param
+    include-binding-errors: always
+  compression:
+    enabled: false
+    min-response-size: 1024
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,circuitbreakers,retries
+        include: health,metrics,circuitbreakers,retries,prometheus,info,cache
+      base-path: /actuator
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized
+      show-components: when-authorized
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+
+app:
+  name: Shout Application
+  version: 1.0.0
+  description: Instagram-based influencer shoutout exchange platform
