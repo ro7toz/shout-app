@@ -10,8 +10,8 @@ environment-defaults:
 
 global:
   application_name: shoutx
-  default_platform: Java 17 running on 64bit Amazon Linux 2
-  default_region: us-east-1
+  default_platform: Corretto 17 running on 64bit Amazon Linux 2023
+  default_region: ap-south-1
   include_git_submodules: true
   instance_profile: null
   platform_name: null
