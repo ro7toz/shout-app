@@ -82,19 +82,17 @@
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
        
-        <!-- FIXED: Added missing Actuator dependency -->
+        <!-- Actuator & Monitoring -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-       
-        <!-- FIXED: Added Micrometer Prometheus for metrics -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
        
-        <!-- Resilience4j -->
+        <!-- Resilience4j Circuit Breaker -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
@@ -105,10 +103,17 @@
             <version>2.1.0</version>
         </dependency>
        
-        <!-- AOP for Resilience4j -->
+        <!-- AOP for Resilience4j & Rate Limiting -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+       
+        <!-- Rate Limiting -->
+        <dependency>
+            <groupId>com.github.vladimir-bukhtoyarov</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>7.6.0</version>
         </dependency>
        
         <!-- Utilities -->
@@ -126,6 +131,19 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
        
+        <!-- API Documentation -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+       
+        <!-- Request Logging -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </dependency>
+       
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -137,7 +155,6 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- FIXED: Added H2 for testing -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
