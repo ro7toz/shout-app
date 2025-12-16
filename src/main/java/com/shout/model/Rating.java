@@ -4,40 +4,37 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "ratings")
+@Table(name = "ratings", indexes = {
+    @Index(name = "idx_rating_rated_user", columnList = "rated_user_id")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Rating implements Serializable {
-
+public class Rating {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "rater_id", nullable = false)
+    
+    @ManyToOne
+    @JoinColumn(name = "rater_id", referencedColumnName = "username")
     private User rater;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "rated_user_id", nullable = false)
+    
+    @ManyToOne
+    @JoinColumn(name = "rated_user_id", referencedColumnName = "username")
     private User ratedUser;
-
+    
     @Column(nullable = false)
     private Integer score;
-
-    @Column(columnDefinition = "TEXT")
-    private String comment;
-
+    
     private String reason;
-
+    private String comment;
+    
     private LocalDateTime createdAt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    
+    @ManyToOne
     @JoinColumn(name = "related_request_id")
     private ShoutoutRequest relatedRequest;
 
