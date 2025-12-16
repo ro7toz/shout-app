@@ -6,8 +6,31 @@
     <title>Shout - Influencer Shoutout Exchange</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org"></script>
+    
+    <!-- Facebook SDK -->
+    <script>
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId      : '[[${facebookAppId}]]',
+          cookie     : true,
+          xfbml      : true,
+          version    : 'v19.0'
+        });
+          
+        FB.AppEvents.logPageView();   
+          
+      };
+
+      (function(d, s, id){
+         var js, fjs = d.getElementsByTagName(s)[0];
+         if (d.getElementById(id)) {return;}
+         js = d.createElement(s); js.id = id;
+         js.src = "https://connect.facebook.net/en_US/sdk.js";
+         fjs.parentNode.insertBefore(js, fjs);
+       }(document, 'script', 'facebook-jssdk'));
+    </script>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50" id="fb-root">
     <!-- Navigation -->
     <nav class="bg-white shadow sticky top-0 z-40">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
