@@ -28,4 +28,14 @@ public class HomeController {
     public String privacy() {
         return "privacy";
     }
+
+    @GetMapping("/terms")
+    public String terms() {
+        return "terms";
+    }
+
+    @GetMapping("/data-deletion")
+    public String dataDeletion() {
+        return "data-deletion";
+    }
 }
