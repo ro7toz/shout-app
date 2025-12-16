@@ -1,9 +1,7 @@
 package com.shout.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,6 +13,7 @@ import java.time.LocalDateTime;
     @Index(name = "idx_user_email", columnList = "email")
 })
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -30,7 +29,10 @@ public class User {
     private String websiteUrl;
     private String accountType;
     
+    @Builder.Default
     private Double averageRating = 5.0;
+    
+    @Builder.Default
     private Integer totalRatings = 0;
     
     private String accessToken;
@@ -38,6 +40,8 @@ public class User {
     
     private LocalDateTime createdAt;
     private LocalDateTime lastUpdatedAt;
+    
+    @Builder.Default
     private Boolean isActive = true;
 
     // ===== FACEBOOK LOGIN FIELDS =====
