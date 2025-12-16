@@ -1,103 +1,95 @@
 package com.shout.controller;
 
+import com.shout.dto.UserProfileDto;
 import com.shout.model.User;
-import com.shout.service.ShoutoutService;
-import com.shout.service.UserSyncService;
+import com.shout.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.stream.Collectors;
 
 @Controller
+@RequestMapping("/")
 @RequiredArgsConstructor
 @Slf4j
 public class HomeController {
+    private final UserRepository userRepository;
 
-    private final ShoutoutService shoutoutService;
-    private final UserSyncService userSyncService;
-    private static final int PAGE_SIZE = 9;
-
-    @GetMapping("/")
-    public String home(
-            @RequestParam(defaultValue = "0") int page,
-            Model model,
-            @AuthenticationPrincipal OAuth2User principal) {
-
-        if (principal != null) {
-            User user = userSyncService.syncOrCreateUser(principal);
-            model.addAttribute("currentUser", user.getUsername());
-            model.addAttribute("currentUserObj", user);
-        }
-
-        Page<User> users = shoutoutService.getAllUsers(PageRequest.of(page, PAGE_SIZE));
-        model.addAttribute("users", users);
-        model.addAttribute("totalPages", users.getTotalPages());
-        model.addAttribute("currentPage", page);
-
+    @GetMapping
+    public String home(Model model) {
         return "home";
+    }
+
+    @GetMapping("/login")
+    public String login() {
+        return "login";
     }
 
     @GetMapping("/users/page/{page}")
-    public String loadMoreUsers(
+    @ResponseBody
+    public Page<UserProfileDto> getUsers(
             @PathVariable int page,
-            Model model) {
+            @RequestParam(defaultValue = "9") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        
+        Page<User> users = userRepository.findByIsActive(true, pageable);
+        return users.map(this::convertToDto);
+    }
 
-        try {
-            Thread.sleep(300);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        Page<User> users = shoutoutService.getAllUsers(PageRequest.of(page, PAGE_SIZE));
-        model.addAttribute("users", users);
-        model.addAttribute("currentPage", page);
-        model.addAttribute("totalPages", users.getTotalPages());
-
-        return "fragments/cards :: card-list";
+    @GetMapping("/users/search")
+    @ResponseBody
+    public Page<UserProfileDto> searchUsers(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        
+        Page<User> users = userRepository.findByUsernameContainingIgnoreCaseOrFullNameContainingIgnoreCase(
+            query, query, pageable);
+        return users.map(this::convertToDto);
     }
 
     @GetMapping("/category/{category}")
-    public String filterByCategory(
+    @ResponseBody
+    public Page<UserProfileDto> getUsersByCategory(
             @PathVariable String category,
             @RequestParam(defaultValue = "0") int page,
-            Model model,
-            @AuthenticationPrincipal OAuth2User principal) {
-
-        if (principal != null) {
-            model.addAttribute("currentUser", principal.getAttribute("login"));
-        }
-
-        Page<User> users = shoutoutService.getUsersByCategory(category, PageRequest.of(page, PAGE_SIZE));
-        model.addAttribute("users", users);
-        model.addAttribute("category", category);
-        model.addAttribute("currentPage", page);
-
-        return "home";
+            @RequestParam(defaultValue = "9") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        
+        Page<User> users = userRepository.findByCategoryIgnoreCase(category, pageable);
+        return users.map(this::convertToDto);
     }
 
-    @GetMapping("/search")
-    public String search(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "0") int page,
-            Model model,
-            @AuthenticationPrincipal OAuth2User principal) {
+    @GetMapping("/profile/{username}")
+    public String viewProfile(
+            @PathVariable String username,
+            Model model) {
+        User user = userRepository.findById(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        model.addAttribute("user", convertToDto(user));
+        return "profile";
+    }
 
-        if (principal != null) {
-            model.addAttribute("currentUser", principal.getAttribute("login"));
-        }
-
-        Page<User> users = shoutoutService.searchUsers(query, PageRequest.of(page, PAGE_SIZE));
-        model.addAttribute("users", users);
-        model.addAttribute("query", query);
-        model.addAttribute("currentPage", page);
-
-        return "home";
+    private UserProfileDto convertToDto(User user) {
+        return UserProfileDto.builder()
+            .username(user.getUsername())
+            .fullName(user.getFullName())
+            .profilePicUrl(user.getProfilePicUrl())
+            .category(user.getCategory())
+            .followerCount(user.getFollowerCount())
+            .biography(user.getBiography())
+            .websiteUrl(user.getWebsiteUrl())
+            .averageRating(user.getAverageRating())
+            .totalRatings(user.getTotalRatings().longValue())
+            .build();
     }
 }

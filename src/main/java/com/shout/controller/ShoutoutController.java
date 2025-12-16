@@ -1,107 +1,96 @@
 package com.shout.controller;
 
+import com.shout.dto.CreateRequestDto;
+import com.shout.dto.ShoutoutRequestDto;
 import com.shout.service.ShoutoutService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.stereotype.Controller;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-@Controller
-@RequestMapping("/shoutout")
+@RestController
+@RequestMapping("/api/shoutout")
 @RequiredArgsConstructor
 @Slf4j
 public class ShoutoutController {
-
     private final ShoutoutService shoutoutService;
 
     @PostMapping("/request")
-    public String createShoutoutRequest(
-            @RequestParam String targetUsername,
-            @RequestParam String postLink,
-            @AuthenticationPrincipal OAuth2User principal,
-            RedirectAttributes redirectAttributes) {
-
+    public ResponseEntity<?> createRequest(
+            Authentication authentication,
+            @Valid @RequestBody CreateRequestDto request) {
         try {
-            String currentUsername = (String) principal.getAttributes().get("login");
-            if (currentUsername == null) {
-                currentUsername = principal.getName();
-            }
-            shoutoutService.createShoutoutRequest(currentUsername, targetUsername, postLink);
-            redirectAttributes.addFlashAttribute("success", "Shoutout request sent successfully!");
-            log.info("Shoutout request sent from {} to {}", currentUsername, targetUsername);
+            String requesterUsername = authentication.getName();
+            
+            var shoutoutRequest = shoutoutService.createRequest(
+                requesterUsername,
+                request.getTargetUsername(),
+                request.getPostLink()
+            );
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(shoutoutRequest);
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Failed to send request: " + e.getMessage());
-            log.error("Error creating shoutout request", e);
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
-
-        return "redirect:/";
     }
 
-    @PostMapping("/accept/{requestId}")
-    public String acceptRequest(
-            @PathVariable Long requestId,
-            @AuthenticationPrincipal OAuth2User principal,
-            RedirectAttributes redirectAttributes) {
-
+    @PostMapping("/{requestId}/accept")
+    public ResponseEntity<?> acceptRequest(
+            Authentication authentication,
+            @PathVariable Long requestId) {
         try {
-            String currentUsername = (String) principal.getAttributes().get("login");
-            if (currentUsername == null) {
-                currentUsername = principal.getName();
-            }
-            shoutoutService.acceptShoutoutRequest(requestId, currentUsername);
-            redirectAttributes.addFlashAttribute("success", "Request accepted! You have 24 hours to post.");
-            log.info("Request {} accepted by {}", requestId, currentUsername);
+            String targetUsername = authentication.getName();
+            
+            var shoutoutRequest = shoutoutService.acceptRequest(requestId, targetUsername);
+            
+            return ResponseEntity.ok(shoutoutRequest);
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
-            log.error("Error accepting request", e);
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
-
-        return "redirect:/dashboard";
     }
 
-    @PostMapping("/posted/{requestId}")
-    public String markAsPosted(
-            @PathVariable Long requestId,
-            @RequestParam(defaultValue = "true") boolean isRequester,
-            @AuthenticationPrincipal OAuth2User principal,
-            RedirectAttributes redirectAttributes) {
-
+    @PostMapping("/{requestId}/posted")
+    public ResponseEntity<?> markAsPosted(
+            Authentication authentication,
+            @PathVariable Long requestId) {
         try {
-            String currentUsername = (String) principal.getAttributes().get("login");
-            if (currentUsername == null) {
-                currentUsername = principal.getName();
-            }
-            shoutoutService.markAsPosted(requestId, currentUsername, isRequester);
-            redirectAttributes.addFlashAttribute("success", "Great! Your post has been marked.");
-            log.info("Request {} marked as posted by {}", requestId, currentUsername);
+            String username = authentication.getName();
+            
+            var shoutoutRequest = shoutoutService.markAsPosted(requestId, username);
+            
+            return ResponseEntity.ok(shoutoutRequest);
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
-            log.error("Error marking as posted", e);
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
-
-        return "redirect:/dashboard";
     }
 
-    @PostMapping("/cancel/{requestId}")
-    public String cancelRequest(
-            @PathVariable Long requestId,
-            @AuthenticationPrincipal OAuth2User principal,
-            RedirectAttributes redirectAttributes) {
+    @GetMapping("/pending")
+    public ResponseEntity<Page<ShoutoutRequestDto>> getPendingRequests(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String username = authentication.getName();
+        Pageable pageable = PageRequest.of(page, size);
+        
+        var requests = shoutoutService.getPendingRequests(username, pageable);
+        return ResponseEntity.ok(requests);
+    }
 
-        try {
-            String currentUsername = (String) principal.getAttributes().get("login");
-            if (currentUsername == null) {
-                currentUsername = principal.getName();
-            }
-            shoutoutService.cancelShoutoutRequest(requestId, currentUsername);
-            redirectAttributes.addFlashAttribute("success", "Request cancelled.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error: " + e.getMessage());
-        }
-
-        return "redirect:/dashboard";
+    @GetMapping("/sent")
+    public ResponseEntity<Page<ShoutoutRequestDto>> getSentRequests(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String username = authentication.getName();
+        Pageable pageable = PageRequest.of(page, size);
+        
+        var requests = shoutoutService.getSentRequests(username, pageable);
+        return ResponseEntity.ok(requests);
     }
 }
