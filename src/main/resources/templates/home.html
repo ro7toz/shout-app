@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shout - Influencer Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 5% auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .close-btn { float: right; font-size: 24px; cursor: pointer; color: #999; }
+        .close-btn:hover { color: #000; }
+        .htmx-swapping { opacity: 0; transition: opacity 0.3s ease-out; }
+        .htmx-settling { opacity: 1; transition: opacity 0.3s ease-in; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <h1 class="text-3xl font-bold text-pink-600">📣 Shout</h1>
+                <span class="text-gray-500 text-sm">Influencer Exchange</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div th:if="${currentUser == null}" class="space-x-2">
+                    <a href="/oauth2/authorization/instagram" class="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg font-semibold transition">
+                        Login with Instagram
+                    </a>
+                </div>
+                <div th:if="${currentUser != null}" class="flex items-center space-x-4">
+                    <a href="/dashboard" class="text-gray-700 hover:text-pink-600 font-medium">Dashboard</a>
+                    <img th:if="${currentUserObj}" th:src="${currentUserObj.profilePicUrl}" class="h-10 w-10 rounded-full border-2 border-pink-500" />
+                    <span th:text="${currentUser}" class="text-sm font-medium"></span>
+                    <a href="/logout" class="text-red-500 hover:text-red-700 font-medium">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold mb-4">Explore Creators</h2>
+            <p class="text-gray-600">Discover amazing influencers and exchange shoutouts</p>
+        </div>
+
+        <!-- User Grid with HTMX Lazy Loading -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="user-grid">
+            <th:block th:include="fragments/cards :: card-list"></th:block>
+        </div>
+
+        <!-- Infinite Scroll Trigger -->
+        <div hx-get="/users/page/1"
+             hx-trigger="revealed"
+             hx-swap="beforeend"
+             hx-target="#user-grid"
+             class="text-center py-12">
+            <div class="flex justify-center items-center space-x-2">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                <span class="text-gray-500">Loading more creators...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Modal -->
+    <div id="requestModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeRequestModal()">&times;</span>
+            <h3 class="text-2xl font-bold mb-4">Request Shoutout</h3>
+            <form action="/shoutout/request" method="post" class="space-y-4">
+                <input type="hidden" id="modalTargetUser" name="targetUsername">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Post Link *</label>
+                    <input type="url" name="postLink" required class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="https://instagram.com/p/...">
+                    <p class="text-xs text-gray-500 mt-1">The Instagram post link you want them to share</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="closeRequestModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg font-medium transition">Cancel</button>
+                    <button type="submit" class="flex-1 bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-lg font-medium transition">Send Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openRequestModal(username) {
+            document.getElementById('modalTargetUser').value = username;
+            document.getElementById('requestModal').style.display = 'block';
+        }
+
+        function closeRequestModal() {
+            document.getElementById('requestModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('requestModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
