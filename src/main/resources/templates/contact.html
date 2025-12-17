@@ -7,86 +7,51 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-accent">
-    <!-- Navigation -->
     <nav class="bg-white shadow-lg sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="/" class="text-2xl font-bold text-primary">ShoutX</a>
-            <a href="/" class="text-gray-700 hover:text-primary">Home</a>
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <a href="/" class="text-2xl font-bold" style="color: #218080;">ShoutX</a>
         </div>
     </nav>
 
-    <!-- Header -->
-    <div class="bg-gradient-to-r from-primary to-primary-hover text-white py-12 px-4">
-        <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-4xl font-bold mb-2">Contact Us</h1>
-            <p class="text-lg opacity-90">We'd love to hear from you</p>
-        </div>
-    </div>
-
-    <!-- Content -->
     <div class="max-w-4xl mx-auto px-4 py-12">
+        <h1 class="text-4xl font-bold mb-8" style="color: #1f2121;">Contact Us</h1>
+        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Contact Form -->
             <div class="bg-white rounded-lg shadow-md p-8">
-                <h2 class="text-2xl font-bold mb-6">Send us a Message</h2>
+                <h2 class="text-2xl font-bold mb-6">Send a Message</h2>
                 <form action="/contact" method="POST" class="space-y-4">
                     <div>
                         <label class="block text-sm font-bold mb-2">Name</label>
-                        <input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary">
+                        <input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg">
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-2">Email</label>
-                        <input type="email" name="email" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold mb-2">Subject</label>
-                        <input type="text" name="subject" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary">
+                        <input type="email" name="email" required class="w-full px-4 py-2 border rounded-lg">
                     </div>
                     <div>
                         <label class="block text-sm font-bold mb-2">Message</label>
-                        <textarea name="message" rows="5" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-primary"></textarea>
+                        <textarea name="message" rows="5" required class="w-full px-4 py-2 border rounded-lg"></textarea>
                     </div>
-                    <button type="submit" class="w-full btn-primary">Send Message</button>
+                    <button type="submit" class="w-full text-white py-2 rounded-lg" style="background-color: #218080;">Send</button>
                 </form>
             </div>
 
-            <!-- Contact Info -->
             <div class="space-y-6">
                 <div class="bg-white rounded-lg shadow-md p-8">
-                    <h3 class="text-lg font-bold mb-2 text-primary">Email</h3>
+                    <h3 class="text-lg font-bold mb-2" style="color: #218080;">Email</h3>
                     <p class="text-gray-700">tushkinit@gmail.com</p>
-                    <p class="text-sm text-gray-600 mt-2">For all inquiries and support requests</p>
                 </div>
-
                 <div class="bg-white rounded-lg shadow-md p-8">
-                    <h3 class="text-lg font-bold mb-2 text-primary">Phone</h3>
+                    <h3 class="text-lg font-bold mb-2" style="color: #218080;">Phone</h3>
                     <p class="text-gray-700">+91 9509103148</p>
-                    <p class="text-sm text-gray-600 mt-2">Available on WhatsApp & Call</p>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-md p-8">
-                    <h3 class="text-lg font-bold mb-2 text-primary">Address</h3>
-                    <p class="text-gray-700">Poonam Colony, Kota</p>
-                    <p class="text-gray-700">Rajasthan, India</p>
-                    <p class="text-sm text-gray-600 mt-2">Mon - Fri: 9 AM - 6 PM IST</p>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-md p-8">
-                    <h3 class="text-lg font-bold mb-2 text-primary">Follow Us</h3>
-                    <div class="flex gap-4">
-                        <a href="https://instagram.com/shoutxapp" target="_blank" class="text-primary hover:text-primary-hover">Instagram</a>
-                        <a href="https://linkedin.com" target="_blank" class="text-primary hover:text-primary-hover">LinkedIn</a>
-                        <a href="https://twitter.com" target="_blank" class="text-primary hover:text-primary-hover">Twitter</a>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white mt-12 py-8">
+    <footer class="py-8 mt-12" style="background-color: #1f2121; color: white;">
         <div class="max-w-6xl mx-auto px-4 text-center">
-            <p>&copy; 2025 ShoutX. All rights reserved.</p>
+            <p>&copy; 2025 ShoutX.</p>
         </div>
     </footer>
 </body>
