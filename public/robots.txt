@@ -1,0 +1,39 @@
+# ShoutX Robots.txt
+# Allow search engines to crawl the site
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /logout
+Disallow: /register
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /payment/
+Disallow: /private/
+
+# Rules for specific bots
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://shoutx.co.in/sitemap.xml
+
+# Search index
+User-agent: *
+Allow: *.js
+Allow: *.css
+Allow: *.jpg
+Allow: *.png
+Allow: *.gif
+Allow: *.svg
