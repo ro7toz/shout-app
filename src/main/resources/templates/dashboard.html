@@ -1,142 +1,73 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Shout</title>
+    <title>Dashboard - ShoutX</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
-<body class="bg-gray-50">
+<body class="bg-accent">
     <!-- Navigation -->
-    <nav class="bg-white shadow sticky top-0 z-40">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="/" class="text-2xl font-bold text-pink-600">📣 Shout</a>
-            <div class="flex items-center space-x-4">
-                <a href="/" class="text-gray-700 hover:text-pink-600">Explore</a>
-                <a href="/dashboard" class="text-pink-600 font-medium">Dashboard</a>
-                <a href="/notifications" class="relative text-gray-700 hover:text-pink-600">
-                    🔔
-                    <span th:if="${unreadCount > 0}" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1" th:text="${unreadCount}"></span>
-                </a>
-                <a href="/logout" class="text-red-500 hover:text-red-700 font-medium">Logout</a>
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="/" class="text-2xl font-bold text-primary">ShoutX</a>
+            <div class="flex gap-4">
+                <a href="/profile" class="text-gray-700 hover:text-primary">Profile</a>
+                <a href="/logout" class="btn-outline">Logout</a>
             </div>
         </div>
     </nav>
 
-    <!-- User Profile Header -->
-    <section class="bg-white shadow">
-        <div class="container mx-auto px-4 py-12">
-            <div class="flex items-center space-x-6">
-                <img th:src="${user.profilePicUrl}" alt="Profile" class="w-24 h-24 rounded-full" />
-                <div>
-                    <h1 class="text-3xl font-bold" th:text="${user.fullName}"></h1>
-                    <p class="text-gray-600 text-lg">@<span th:text="${user.username}"></span></p>
-                    <p class="text-gray-700 mt-2">
-                        <span th:text="${user.followerCount}"></span> followers
-                        <span class="ml-4">⭐ <span th:text="${#numbers.formatDecimal(user.averageRating, 1, 2)}"></span> (<span th:text="${user.totalRatings}"></span> ratings)</span>
-                    </p>
-                </div>
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">Welcome, <span th:text="${user.fullName}" class="text-primary"></span>!</h1>
+            <p class="text-gray-600">Manage your shoutout requests and track your engagement</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
+                <p class="text-gray-600 text-sm">Pending Requests</p>
+                <p class="text-3xl font-bold text-primary" th:text="${stats.pendingRequests}">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
+                <p class="text-gray-600 text-sm">Completed Exchanges</p>
+                <p class="text-3xl font-bold text-primary" th:text="${stats.completedExchanges}">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
+                <p class="text-gray-600 text-sm">Your Rating</p>
+                <p class="text-3xl font-bold text-primary"><span th:text="${user.averageRating}">0</span>/5</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-primary">
+                <p class="text-gray-600 text-sm" th:if="${user.isPro}">Plan: PRO</p>
+                <p class="text-gray-600 text-sm" th:if="!${user.isPro}">Plan: BASIC</p>
+                <p class="text-xl font-bold text-primary" th:if="${user.isPro}">💎</p>
+                <p class="text-xl font-bold text-primary" th:if="!${user.isPro}">📚</p>
             </div>
         </div>
-    </section>
 
-    <!-- Tabs -->
-    <div class="bg-white border-b">
-        <div class="container mx-auto px-4 flex space-x-8">
-            <button class="tab-button py-4 px-2 border-b-2 border-pink-600 text-pink-600 font-bold" data-tab="pending">
-                Pending Requests
-            </button>
-            <button class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 font-bold hover:text-pink-600" data-tab="sent">
-                Sent Requests
-            </button>
-            <button class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 font-bold hover:text-pink-600" data-tab="circle">
-                My Circle
-            </button>
+        <!-- Tabs -->
+        <div class="flex gap-4 mb-8 border-b">
+            <button hx-get="/dashboard/pending" hx-target="#content" class="px-4 py-2 border-b-2 border-primary text-primary font-bold">Pending Requests</button>
+            <button hx-get="/dashboard/active" hx-target="#content" class="px-4 py-2 text-gray-600 hover:text-primary">Active Exchanges</button>
+            <button hx-get="/dashboard/completed" hx-target="#content" class="px-4 py-2 text-gray-600 hover:text-primary">Completed</button>
+            <button hx-get="/dashboard/analytics" hx-target="#content" class="px-4 py-2 text-gray-600 hover:text-primary" th:if="${user.isPro}">Analytics</button>
+        </div>
+
+        <!-- Content Area -->
+        <div id="content">
+            <div hx-get="/dashboard/pending" hx-trigger="load" class="loading">Loading...</div>
         </div>
     </div>
 
-    <!-- Content -->
-    <div class="container mx-auto px-4 py-12">
-        <!-- Pending Requests Tab -->
-        <div id="pending" class="tab-content">
-            <h2 class="text-2xl font-bold mb-6">Pending Requests</h2>
-            <div class="grid gap-4">
-                <div th:each="req : ${pendingRequests}" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="text-lg font-bold">Request from <span th:text="${req.requesterUsername}"></span></h3>
-                            <p class="text-gray-600" th:text="'Sent: ' + ${#temporals.format(req.createdAt, 'MMM dd, yyyy HH:mm')}"></p>
-                        </div>
-                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">NEW</span>
-                    </div>
-                    <div class="mb-4">
-                        <a th:href="${req.postLink}" target="_blank" class="text-blue-600 hover:underline">View Instagram Post</a>
-                    </div>
-                    <div class="flex space-x-4">
-                        <button th:hx-post="'/api/shoutout/' + ${req.id} + '/accept'" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold transition">
-                            Accept
-                        </button>
-                        <button class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold transition">
-                            Decline
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <!-- Footer -->
+    <footer class="bg-dark text-white mt-12 py-8">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p>&copy; 2025 ShoutX. All rights reserved.</p>
         </div>
-
-        <!-- Sent Requests Tab -->
-        <div id="sent" class="tab-content hidden">
-            <h2 class="text-2xl font-bold mb-6">Sent Requests</h2>
-            <div class="grid gap-4">
-                <div th:each="req : ${sentRequests}" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="text-lg font-bold">Request to <span th:text="${req.targetUsername}"></span></h3>
-                            <p class="text-gray-600" th:text="'Sent: ' + ${#temporals.format(req.createdAt, 'MMM dd, yyyy HH:mm')}"></p>
-                        </div>
-                        <span class="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-bold" th:text="${req.status}"></span>
-                    </div>
-                    <div class="mb-4" th:if="${req.status == 'ACCEPTED'}">
-                        <div class="bg-yellow-50 p-4 rounded-lg">
-                            <p class="text-sm font-bold">⏰ <span th:text="${req.hoursRemaining}"></span> hours remaining</p>
-                            <div class="mt-4 flex space-x-2">
-                                <button th:if="!${req.requesterPosted}" th:hx-post="'/api/shoutout/' + ${req.id} + '/posted'" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">
-                                    I Posted It!
-                                </button>
-                                <span th:if="${req.requesterPosted}" class="text-green-600 font-bold">✅ You posted</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Circle Tab -->
-        <div id="circle" class="tab-content hidden">
-            <h2 class="text-2xl font-bold mb-6">My Circle</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Friend cards would go here -->
-            </div>
-        </div>
-    </div>
-
-    <script>
-        document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                // Update active tab
-                document.querySelectorAll('.tab-button').forEach(b => {
-                    b.classList.remove('border-pink-600', 'text-pink-600');
-                    b.classList.add('border-transparent', 'text-gray-600');
-                });
-                btn.classList.add('border-pink-600', 'text-pink-600');
-                btn.classList.remove('border-transparent', 'text-gray-600');
-
-                // Update content
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                document.getElementById(btn.dataset.tab).classList.remove('hidden');
-            });
-        });
-    </script>
+    </footer>
 </body>
 </html>

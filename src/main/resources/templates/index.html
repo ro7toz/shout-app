@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ShoutX: The influencer marketplace for authentic shoutouts. Connect, grow, and monetize your Instagram presence.">
+    <meta name="keywords" content="influencer, shoutouts, Instagram, marketing, social media">
+    <title>ShoutX - Influencer Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        .hero { background: linear-gradient(135deg, #218080 0%, #1a6b6b 100%); }
+        .feature-card { @apply bg-white rounded-lg p-8 shadow-lg hover:shadow-xl transition; }
+        .testimonial { @apply bg-accent rounded-lg p-6 border-l-4 border-primary; }
+    </style>
+</head>
+<body class="bg-accent">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="/" class="text-2xl font-bold text-primary">ShoutX</a>
+            <div class="flex gap-4">
+                <a href="#features" class="text-gray-700 hover:text-primary">Features</a>
+                <a href="#pricing" class="text-gray-700 hover:text-primary">Pricing</a>
+                <a href="#testimonials" class="text-gray-700 hover:text-primary">Testimonials</a>
+                <a href="/login" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-hover">Sign In</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero text-white py-24">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <h1 class="text-5xl font-bold mb-4">Grow Your Influence 🚀</h1>
+            <p class="text-xl mb-8 opacity-90">Connect with authentic creators and grow your audience through genuine shoutouts.</p>
+            <div class="flex gap-4 justify-center">
+                <a href="/login" class="bg-white text-primary px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition">Get Started</a>
+                <a href="#features" class="border-2 border-white text-white px-8 py-3 rounded-lg font-bold hover:bg-white hover:text-primary transition">Learn More</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 px-4">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold text-center mb-12 text-dark">Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="feature-card">
+                    <div class="text-4xl mb-4">📢</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">Request Shoutouts</h3>
+                    <p class="text-gray-600">Find creators and request authentic shoutouts for your Instagram posts or stories.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-4xl mb-4">⏰</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">24-Hour Timer</h3>
+                    <p class="text-gray-600">Both parties have 24 hours to post. Automatic compliance tracking ensures accountability.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">Real Analytics (PRO)</h3>
+                    <p class="text-gray-600">Track impressions, clicks, and profile visits for every shoutout on your PRO account.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-4xl mb-4">⭐</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">User Ratings</h3>
+                    <p class="text-gray-600">Build your reputation through community ratings based on reliability and content quality.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-4xl mb-4">🛡️</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">Compliance Tracking</h3>
+                    <p class="text-gray-600">3-strike system protects users from unreliable creators. Build trust through accountability.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="text-4xl mb-4">💳</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">Multiple Payments</h3>
+                    <p class="text-gray-600">Pay with Razorpay, PayPal, UPI, or Paytm. Multiple payment options for your convenience.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="bg-white py-16 px-4">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold text-center mb-12 text-dark">Simple Pricing</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- BASIC Plan -->
+                <div class="card border-2 border-primary">
+                    <h3 class="text-2xl font-bold mb-4 text-primary">BASIC (Free)</h3>
+                    <p class="text-4xl font-bold mb-2">₹0</p>
+                    <p class="text-gray-600 mb-6">Perfect to start</p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex gap-2"><span>✅</span> <span>Instagram Stories only</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>Request & accept shoutouts</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>24-hour timer</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>User ratings</span></li>
+                        <li class="flex gap-2"><span>❌</span> <span>Advanced analytics</span></li>
+                        <li class="flex gap-2"><span>❌</span> <span>Posts & Reels</span></li>
+                    </ul>
+                    <a href="/login" class="w-full btn-secondary text-center">Get Started</a>
+                </div>
+                
+                <!-- PRO Plan -->
+                <div class="card border-4 border-primary bg-gradient-to-br from-primary/5">
+                    <div class="mb-4">
+                        <span class="bg-primary text-white px-4 py-1 rounded-full text-sm font-bold">Most Popular</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 text-primary">PRO</h3>
+                    <p class="text-4xl font-bold mb-2">₹499<span class="text-lg">/month</span></p>
+                    <p class="text-gray-600 mb-6">or ₹4,999/year (save ₹20,000!)</p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex gap-2"><span>✅</span> <span>Everything in BASIC</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>Instagram Posts & Reels</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>Advanced analytics</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>Impressions tracking</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>Click analytics</span></li>
+                        <li class="flex gap-2"><span>✅</span> <span>Premium support</span></li>
+                    </ul>
+                    <a href="/login" class="w-full btn-primary text-center">Start 7-Day Trial</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-16 px-4">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-4xl font-bold text-center mb-12 text-dark">What Creators Say</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="testimonial">
+                    <p class="text-gray-700 mb-4">"ShoutX helped me grow my audience from 5K to 50K followers in 3 months. The compliance system ensures I always get quality shoutouts."</p>
+                    <p class="font-bold text-primary">- Priya Sharma</p>
+                    <p class="text-sm text-gray-600">Fashion Creator, Mumbai</p>
+                </div>
+                <div class="testimonial">
+                    <p class="text-gray-700 mb-4">"The analytics feature is incredible. I can now measure the exact impact of each shoutout on my engagement and reach."</p>
+                    <p class="font-bold text-primary">- Rahul Verma</p>
+                    <p class="text-sm text-gray-600">Tech Influencer, Bangalore</p>
+                </div>
+                <div class="testimonial">
+                    <p class="text-gray-700 mb-4">"Finally, a platform that makes shoutout exchanges transparent and reliable. The 3-strike system keeps everyone honest."</p>
+                    <p class="font-bold text-primary">- Neha Patel</p>
+                    <p class="text-sm text-gray-600">Lifestyle Creator, Delhi</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="hero py-16 px-4 text-center">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-3xl font-bold mb-4">Ready to Grow Your Influence?</h2>
+            <p class="text-lg mb-8 opacity-90">Join thousands of creators already using ShoutX</p>
+            <a href="/login" class="bg-white text-primary px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition inline-block">Start Today (Free)</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-8">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p class="mb-2">&copy; 2025 ShoutX. All rights reserved.</p>
+            <p class="text-gray-400">Email: tushkinit@gmail.com | Phone: +91 9509103148</p>
+        </div>
+    </footer>
+</body>
+</html>
