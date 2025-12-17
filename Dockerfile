@@ -1,17 +1,24 @@
-# Multi-stage build
-FROM maven:3.9-eclipse-temurin-17 AS builder
-WORKDIR /build
+# Stage 1: Build
+FROM maven:3.9.0-eclipse-temurin-17 AS builder
+
+WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Runtime
+# Stage 2: Runtime
 FROM eclipse-temurin:17-jdk-alpine
+
 WORKDIR /app
-COPY --from=builder /build/target/shout-app-1.0.0.jar app.jar
-RUN adduser -D appuser && chown appuser:appuser /app && mkdir -p /app/logs && chown appuser:appuser /app/logs
-USER appuser
+RUN apk add --no-cache curl
+COPY --from=builder /app/target/shout-app-*.jar app.jar
+
+RUN addgroup -g 1000 shoutx && adduser -D -u 1000 -G shoutx shoutx
+USER shoutx
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
+
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 CMD java -cp /app/app.jar org.springframework.boot.loader.launch.JarLauncher curl -f http://localhost:8080/actuator/health || exit 1
-CMD ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
