@@ -67,6 +67,28 @@ public class User {
     
     // ===== END FACEBOOK FIELDS =====
 
+    // ===== SUBSCRIPTION & PAYMENT FIELDS =====
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false)
+    private SubscriptionStatus subscriptionStatus = SubscriptionStatus.BASIC; // BASIC or PRO
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer strikeCount = 0; // 0-3 strikes
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean accountBanned = false; // True if strikes >= 3
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean socialLoginBanned = false; // Ban this social account
+
+    private LocalDateTime bannedAt; // When account was banned
+
+    // ===== END SUBSCRIPTION FIELDS =====
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -76,5 +98,10 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         lastUpdatedAt = LocalDateTime.now();
+    }
+
+    public enum SubscriptionStatus {
+        BASIC,
+        PRO
     }
 }
