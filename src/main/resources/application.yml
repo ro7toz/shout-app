@@ -2,13 +2,42 @@ spring:
   application:
     name: shout-app
   
-  # Mail Configuration
+  # ===== DATABASE CONFIGURATION =====
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/shoutxdb}
+    username: ${DB_USER:shoutxuser}
+    password: ${DB_PASSWORD:password123}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+    show-sql: false
+  
+  # ===== REDIS CONFIGURATION =====
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 2000ms
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+  
+  # ===== EMAIL (GMAIL) CONFIGURATION =====
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:tushkinit@gmail.com}
-    password: ${MAIL_PASSWORD}
-    protocol: smtp
+    password: ${MAIL_PASSWORD:your_app_password}
     properties:
       mail:
         smtp:
@@ -19,107 +48,64 @@ spring:
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
-  
-  # JPA Configuration
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-        jdbc:
-          batch_size: 10
-    show-sql: false
-  
-  # PostgreSQL Configuration
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/shoutx}
-    username: ${DB_USER:shoutx}
-    password: ${DB_PASSWORD:password}
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-  
-  # Redis Configuration
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    timeout: 2000
-    jedis:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-  
-  # Thymeleaf Configuration
-  thymeleaf:
-    enabled: true
-    prefix: classpath:/templates/
-    suffix: .html
-    cache: false
-  
-  # Security - OAuth2
-  security:
-    oauth2:
-      client:
-        registration:
-          instagram:
-            client-id: ${INSTAGRAM_CLIENT_ID}
-            client-secret: ${INSTAGRAM_CLIENT_SECRET}
-            redirect-uri: ${APP_URL:http://localhost:8080}/login/oauth2/code/instagram
-            authorization-grant-type: authorization_code
-            scope: user_profile,user_media
-        provider:
-          instagram:
-            authorization-uri: https://api.instagram.com/oauth/authorize
-            token-uri: https://graph.instagram.com/v17.0/oauth/access_token
-            user-info-uri: https://graph.instagram.com/me
-            user-name-attribute: username
+    from: ${MAIL_FROM:noreply@shoutx.co.in}
 
-# Server Configuration
 server:
   port: ${SERVER_PORT:8080}
   servlet:
     context-path: /
-  error:
-    include-message: always
-    include-binding-errors: always
+  compression:
+    enabled: true
+    min-response-size: 1024
 
-# Logging
+# ===== LOGGING =====
 logging:
   level:
     root: INFO
     com.shout: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.web: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-# Management - Actuator
+# ===== PAYMENT GATEWAY CONFIGURATION =====
+payment:
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:rzp_test_xxxxxxxxxxxxx}
+    key-secret: ${RAZORPAY_KEY_SECRET:xxxxxxxxxxxxxxxxxxxxxx}
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:your_webhook_secret}
+  
+  paypal:
+    client-id: ${PAYPAL_CLIENT_ID:your_paypal_client_id}
+    client-secret: ${PAYPAL_CLIENT_SECRET:your_paypal_client_secret}
+    mode: ${PAYPAL_MODE:sandbox}
+
+# ===== OAUTH CONFIGURATION =====
+oauth:
+  instagram:
+    client-id: ${INSTAGRAM_CLIENT_ID:your_instagram_client_id}
+    client-secret: ${INSTAGRAM_CLIENT_SECRET:your_instagram_client_secret}
+    access-token: ${INSTAGRAM_GRAPH_API_ACCESS_TOKEN:your_long_lived_token}
+  
+  facebook:
+    app-id: ${FACEBOOK_APP_ID:your_facebook_app_id}
+    app-secret: ${FACEBOOK_APP_SECRET:your_facebook_app_secret}
+
+# ===== SUBSCRIPTION & COMPLIANCE SETTINGS =====
+subscription:
+  max-strikes: 3
+  strike-auto-reset-days: 30
+  ban-duration-days: 30
+
+# ===== ACTUATOR & HEALTH MONITORING =====
 management:
   endpoints:
     web:
       exposure:
         include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
   metrics:
     export:
       prometheus:
         enabled: true
-
-# Application Configuration
-app:
-  name: ShoutX
-  url: ${APP_URL:http://localhost:8080}
-  mail:
-    from: ${MAIL_FROM:noreply@shoutx.co.in}
-  contact:
-    email: tushkinit@gmail.com
-    phone: +91 9509103148
-    address: Poonam Colony, Kota (Rajasthan)
-  domain: shoutx.co.in
-
-# Async Configuration
-async:
-  core-pool-size: 5
-  max-pool-size: 10
-  queue-capacity: 100
