@@ -1,6 +1,7 @@
 package com.shout.service;
 
 import com.shout.dto.ShoutoutRequestDto;
+import com.shout.exception.BadRequestException;
 import com.shout.exception.ResourceNotFoundException;
 import com.shout.exception.UnauthorizedException;
 import com.shout.model.ShoutoutRequest;
@@ -29,23 +30,39 @@ public class ShoutoutService {
     private final ShoutoutRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final SubscriptionService subscriptionService; // ✅ NEW: For PRO validation
+    private final BadRequestException badRequestException = null;
 
-    public ShoutoutRequest createRequest(String requesterUsername, String targetUsername, String postLink) {
+    /**
+     * ✅ UPDATED: Create shoutout request with media type validation
+     * BASIC users can only request STORIES
+     * PRO users can request STORY, POST, or REEL
+     */
+    public ShoutoutRequest createRequest(String requesterUsername, String targetUsername, 
+                                         String postLink, ShoutoutRequest.MediaType mediaType) {
         User requester = userRepository.findById(requesterUsername)
             .orElseThrow(() -> new ResourceNotFoundException("User", "username", requesterUsername));
         
         User target = userRepository.findById(targetUsername)
             .orElseThrow(() -> new ResourceNotFoundException("User", "username", targetUsername));
 
+        // ✅ CHECK: BASIC users can only request STORIES
+        boolean requesterIsPro = subscriptionService.isProUser(requester);
+        if (!requesterIsPro && (mediaType == ShoutoutRequest.MediaType.POST || mediaType == ShoutoutRequest.MediaType.REEL)) {
+            log.warn("❌ User {} (BASIC) tried to request {}", requesterUsername, mediaType);
+            throw new BadRequestException("Upgrade to PRO to request posts and reels");
+        }
+
         ShoutoutRequest request = ShoutoutRequest.builder()
             .requester(requester)
             .target(target)
             .postLink(postLink)
+            .mediaType(mediaType) // ✅ ADD: Store media type
             .status(ShoutoutRequest.RequestStatus.PENDING)
             .build();
 
         ShoutoutRequest saved = requestRepository.save(request);
-        log.info("Request created: {} -> {}", requesterUsername, targetUsername);
+        log.info("✅ Request created: {} -> {} ({})", requesterUsername, targetUsername, mediaType);
 
         // Send notification
         notificationService.notifyRequestReceived(target, requester, saved);
@@ -149,6 +166,9 @@ public class ShoutoutService {
         }
     }
 
+    /**
+     * ✅ UPDATED: Convert to DTO with mediaType included
+     */
     private ShoutoutRequestDto convertToDto(ShoutoutRequest request) {
         LocalDateTime expiryTime = request.getAcceptedAt().plusHours(24);
         long hoursRemaining = Duration.between(LocalDateTime.now(), expiryTime).toHours();
@@ -158,6 +178,7 @@ public class ShoutoutService {
             .requesterUsername(request.getRequester().getUsername())
             .targetUsername(request.getTarget().getUsername())
             .postLink(request.getPostLink())
+            .mediaType(request.getMediaType().toString()) // ✅ ADD: Include media type
             .status(request.getStatus().toString())
             .createdAt(request.getCreatedAt())
             .acceptedAt(request.getAcceptedAt())
