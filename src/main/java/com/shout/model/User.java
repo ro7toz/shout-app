@@ -10,7 +10,10 @@ import java.time.LocalDateTime;
     @Index(name = "idx_user_rating", columnList = "average_rating DESC"),
     @Index(name = "idx_user_active", columnList = "is_active"),
     @Index(name = "idx_user_facebook_id", columnList = "facebook_id"),
-    @Index(name = "idx_user_email", columnList = "email")
+    @Index(name = "idx_user_email", columnList = "email"),
+    @Index(name = "idx_user_follower_count", columnList = "follower_count"),
+    @Index(name = "idx_user_banned", columnList = "account_banned,is_active"),
+    @Index(name = "idx_user_strikes", columnList = "strike_count")
 })
 @Data
 @Builder
@@ -67,12 +70,7 @@ public class User {
     
     // ===== END FACEBOOK FIELDS =====
 
-    // ===== SUBSCRIPTION & PAYMENT FIELDS =====
-    @Enumerated(EnumType.STRING)
-    @Builder.Default
-    @Column(nullable = false)
-    private SubscriptionStatus subscriptionStatus = SubscriptionStatus.BASIC; // BASIC or PRO
-
+    // ===== COMPLIANCE & STRIKE SYSTEM =====
     @Builder.Default
     @Column(nullable = false)
     private Integer strikeCount = 0; // 0-3 strikes
@@ -86,8 +84,7 @@ public class User {
     private Boolean socialLoginBanned = false; // Ban this social account
 
     private LocalDateTime bannedAt; // When account was banned
-
-    // ===== END SUBSCRIPTION FIELDS =====
+    // ===== END COMPLIANCE FIELDS =====
 
     @PrePersist
     protected void onCreate() {
@@ -98,10 +95,5 @@ public class User {
     @PreUpdate
     protected void onUpdate() {
         lastUpdatedAt = LocalDateTime.now();
-    }
-
-    public enum SubscriptionStatus {
-        BASIC,
-        PRO
     }
 }

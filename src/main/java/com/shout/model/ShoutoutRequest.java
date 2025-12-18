@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
     @Index(name = "idx_request_status", columnList = "status"),
     @Index(name = "idx_request_requester", columnList = "requester_id"),
     @Index(name = "idx_request_target", columnList = "target_id"),
-    @Index(name = "idx_request_accepted_at", columnList = "accepted_at")
+    @Index(name = "idx_request_accepted_at", columnList = "accepted_at"),
+    @Index(name = "idx_request_media_type", columnList = "media_type")
 })
 @Data
 @Builder
@@ -31,6 +32,12 @@ public class ShoutoutRequest {
     private User target;
     
     private String postLink;
+    
+    // ✅ NEW: Media type field for BASIC vs PRO access control
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false)
+    private MediaType mediaType = MediaType.STORY;
     
     @Enumerated(EnumType.STRING)
     private RequestStatus status;
@@ -59,9 +66,19 @@ public class ShoutoutRequest {
         if (status == null) {
             status = RequestStatus.PENDING;
         }
+        if (mediaType == null) {
+            mediaType = MediaType.STORY;
+        }
     }
 
     public enum RequestStatus {
         PENDING, ACCEPTED, COMPLETED, FAILED, REJECTED
+    }
+    
+    // ✅ NEW: Media type enum for subscription tier control
+    public enum MediaType {
+        STORY,  // Available to BASIC and PRO users
+        POST,   // PRO users only
+        REEL    // PRO users only
     }
 }
