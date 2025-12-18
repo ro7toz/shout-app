@@ -30,6 +30,21 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT u FROM User u WHERE u.category = :category AND u.isActive = true ORDER BY u.averageRating DESC")
     List<User> findTopRatedByCategory(@Param("category") String category);
     
+    // ===== FOLLOWER COUNT FILTERING (Homepage Discovery) =====
+    /**
+     * Filter users by follower count range
+     * Used for homepage discovery filtering
+     */
+    Page<User> findByFollowerCountBetweenAndIsActive(
+        Integer minFollowers, Integer maxFollowers, Boolean isActive, Pageable pageable);
+    
+    /**
+     * Filter by category AND follower count range
+     * Used for advanced discovery with multiple filters
+     */
+    Page<User> findByCategoryIgnoreCaseAndFollowerCountBetweenAndIsActive(
+        String category, Integer minFollowers, Integer maxFollowers, Boolean isActive, Pageable pageable);
+    
     // ===== FACEBOOK AUTHENTICATION QUERIES =====
     /**
      * Find user by Facebook ID
@@ -61,4 +76,26 @@ public interface UserRepository extends JpaRepository<User, String> {
      */
     @Query("SELECT u FROM User u WHERE u.facebookId IS NOT NULL AND u.isActive = true")
     List<User> findAllFacebookUsers();
+    
+    // ===== COMPLIANCE QUERIES =====
+    /**
+     * Check if social login is banned
+     * Used during OAuth login to prevent banned users from accessing app
+     */
+    @Query("SELECT u FROM User u WHERE u.facebookId = :facebookId AND u.socialLoginBanned = true")
+    Optional<User> findBannedBySocialLogin(@Param("facebookId") String facebookId);
+    
+    /**
+     * Find all banned users
+     * Used for audit reports
+     */
+    @Query("SELECT u FROM User u WHERE u.accountBanned = true")
+    List<User> findAllBannedUsers();
+    
+    /**
+     * Find users with strike count
+     * Used for compliance monitoring
+     */
+    @Query("SELECT u FROM User u WHERE u.strikeCount >= :minStrikes ORDER BY u.strikeCount DESC")
+    Page<User> findUsersWithStrikes(@Param("minStrikes") Integer minStrikes, Pageable pageable);
 }
