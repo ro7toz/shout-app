@@ -1,0 +1,30 @@
+# ShoutX robots.txt
+# Allow search engines to crawl the site
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /account/
+Disallow: /dashboard/
+Disallow: /profile/
+
+# Specific search engines
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+# Crawl delay
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://shoutx.app/sitemap.xml
