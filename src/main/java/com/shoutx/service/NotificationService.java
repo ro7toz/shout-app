@@ -1,144 +1,144 @@
 package com.shoutx.service;
 
-import com.shoutx.model.*;
+import com.shoutx.entity.Notification;
+import com.shoutx.entity.Request;
+import com.shoutx.entity.User;
+import com.shoutx.entity.Payment;
 import com.shoutx.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Slf4j
 public class NotificationService {
-
+    
     private final NotificationRepository notificationRepository;
-    private final JavaMailSender mailSender;
-    private static final String SENDER_EMAIL = "tushkinit@gmail.com";
-
-    public void notifyShoutoutRequest(User sender, User receiver, ShoutoutExchange exchange) {
-        // Create in-app notification
+    private final EmailService emailService;
+    
+    @Transactional
+    public void sendNewRequestNotification(User receiver, User sender, Request request) {
+        // In-app notification
         Notification notification = Notification.builder()
                 .user(receiver)
-                .type(Notification.NotificationType.SHOUTOUT_REQUEST)
-                .title(sender.getName() + " sent you a shoutout request")
-                .message("User " + sender.getName() + " wants to exchange shoutouts. Accept their request?")
-                .relatedUserId(String.valueOf(sender.getId()))
-                .relatedExchangeId(String.valueOf(exchange.getId()))
+                .notificationType(Notification.NotificationType.NEW_REQUEST)
+                .title(sender.getName() + " sent a shoutout request")
+                .message(sender.getName() + " sent you a shoutout request. Check your dashboard to accept.")
+                .relatedUser(sender)
+                .relatedRequest(request)
+                .isRead(false)
+                .actionUrl("/dashboard")
+                .createdAt(LocalDateTime.now())
                 .build();
-
+        
         notificationRepository.save(notification);
-
-        // Send email notification
-        sendEmailNotification(
-                receiver.getEmail(),
-                sender.getName() + " sent you a shoutout request",
-                "Hi " + receiver.getName() + ",\n\n" +
-                        sender.getName() + " (@" + sender.getUsername() + ") wants to exchange shoutouts with you. \n\n" +
-                        "Check your dashboard to accept or decline this request.\n\n" +
-                        "Best regards,\nShoutX Team"
-        );
+        
+        // Email notification
+        emailService.sendNewRequestEmail(receiver, sender);
+        log.info("New request notification sent to user {}", receiver.getId());
     }
-
-    public void notifyRepostCompleted(User user, ShoutoutExchange exchange) {
-        User otherUser = user.getId().equals(exchange.getSender().getId()) ? 
-                exchange.getReceiver() : exchange.getSender();
-
-        Notification notification = Notification.builder()
-                .user(otherUser)
-                .type(Notification.NotificationType.SHOUTOUT_REPOSTED)
-                .title(user.getName() + " reposted your shoutout")
-                .message("Your shoutout from " + user.getName() + " has been reposted successfully!")
-                .relatedUserId(String.valueOf(user.getId()))
-                .relatedExchangeId(String.valueOf(exchange.getId()))
+    
+    @Transactional
+    public void sendCompletionNotification(User sender, User receiver, Request request) {
+        // Send to both users
+        Notification notificationSender = Notification.builder()
+                .user(sender)
+                .notificationType(Notification.NotificationType.REQUEST_COMPLETED)
+                .title("Shoutout exchange completed")
+                .message(receiver.getName() + " completed the shoutout exchange.")
+                .relatedUser(receiver)
+                .relatedRequest(request)
+                .isRead(false)
+                .actionUrl("/dashboard")
+                .createdAt(LocalDateTime.now())
                 .build();
-
-        notificationRepository.save(notification);
-
-        // Send email
-        sendEmailNotification(
-                otherUser.getEmail(),
-                user.getName() + " reposted your shoutout",
-                "Hi " + otherUser.getName() + ",\n\n" +
-                        user.getName() + " has successfully reposted your shoutout! \n\n" +
-                        "Thanks for using ShoutX!\n\n" +
-                        "Best regards,\nShoutX Team"
-        );
-    }
-
-    public void notifyAccountBanned(User user) {
-        Notification notification = Notification.builder()
-                .user(user)
-                .type(Notification.NotificationType.ACCOUNT_BANNED)
-                .title("Your account has been banned")
-                .message("Your account has received 3 strikes and has been permanently banned from ShoutX.")
+        
+        Notification notificationReceiver = Notification.builder()
+                .user(receiver)
+                .notificationType(Notification.NotificationType.REQUEST_COMPLETED)
+                .title("Shoutout exchange completed")
+                .message(sender.getName() + " completed the shoutout exchange.")
+                .relatedUser(sender)
+                .relatedRequest(request)
+                .isRead(false)
+                .actionUrl("/dashboard")
+                .createdAt(LocalDateTime.now())
                 .build();
-
-        notificationRepository.save(notification);
-
-        sendEmailNotification(
-                user.getEmail(),
-                "Your ShoutX account has been banned",
-                "Hi " + user.getName() + ",\n\n" +
-                        "We regret to inform you that your ShoutX account has been banned due to repeated violations of our community guidelines. \n\n" +
-                        "This action is permanent, and your associated Instagram account (@" + user.getUsername() + ") cannot be used to sign up again. \n\n" +
-                        "If you believe this is an error, please contact us at support@shoutx.app\n\n" +
-                        "Best regards,\nShoutX Team"
-        );
+        
+        notificationRepository.save(notificationSender);
+        notificationRepository.save(notificationReceiver);
+        
+        emailService.sendCompletionEmail(sender, receiver);
+        log.info("Completion notifications sent for request {}", request.getId());
     }
-
-    public void notifyPaymentSuccess(User user, Payment payment) {
+    
+    @Transactional
+    public void sendStrikeWarningNotification(User user, Integer strikeCount) {
         Notification notification = Notification.builder()
                 .user(user)
-                .type(Notification.NotificationType.PAYMENT_SUCCESSFUL)
-                .title("Payment successful - Plan upgraded")
-                .message("Your payment has been processed. Your plan has been upgraded to " + payment.getPlanType())
+                .notificationType(Notification.NotificationType.STRIKE_WARNING)
+                .title("Strike warning: " + strikeCount + "/3")
+                .message("You have " + strikeCount + " strikes. One more strike will result in account ban.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
                 .build();
-
+        
         notificationRepository.save(notification);
-
-        String planDetails = payment.getPlanType() == Payment.PlanType.PRO ? 
-                "50 requests per day, All media types, Advanced analytics" : 
-                "10 requests per day, Stories only, Basic features";
-
-        sendEmailNotification(
-                user.getEmail(),
-                "Payment successful - Welcome to " + payment.getPlanType() + " plan",
-                "Hi " + user.getName() + ",\n\n" +
-                        "Your payment has been successfully processed! \n\n" +
-                        "Plan Details: " + planDetails + "\n" +
-                        "Valid until: " + payment.getExpiresAt() + "\n\n" +
-                        "Enjoy using ShoutX!\n\n" +
-                        "Best regards,\nShoutX Team"
-        );
+        emailService.sendStrikeWarningEmail(user, strikeCount);
+        log.warn("Strike warning sent to user {}: {}/3", user.getId(), strikeCount);
     }
-
-    public List<Notification> getUserNotifications(User user) {
-        return notificationRepository.findByUserOrderByCreatedAtDesc(user);
+    
+    @Transactional
+    public void sendAccountBannedNotification(User user) {
+        Notification notification = Notification.builder()
+                .user(user)
+                .notificationType(Notification.NotificationType.ACCOUNT_BANNED)
+                .title("Your account has been suspended")
+                .message("Your account has been suspended due to multiple violations. Contact support for details.")
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        notificationRepository.save(notification);
+        emailService.sendBanNotificationEmail(user);
+        log.warn("Account ban notification sent to user {}", user.getId());
     }
-
-    public long getUnreadNotificationCount(User user) {
-        return notificationRepository.countByUserAndIsReadFalse(user);
+    
+    @Transactional
+    public void sendPaymentSuccessNotification(User user, Payment payment) {
+        Notification notification = Notification.builder()
+                .user(user)
+                .notificationType(Notification.NotificationType.PRO_UPGRADE_SUCCESS)
+                .title("Pro plan activated")
+                .message("Congratulations! Your Pro plan is now active.")
+                .isRead(false)
+                .actionUrl("/dashboard")
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        notificationRepository.save(notification);
+        emailService.sendPaymentSuccessEmail(user, payment);
+        log.info("Payment success notification sent to user {}", user.getId());
     }
-
-    public void markAsRead(Notification notification) {
+    
+    public List<Notification> getUserNotifications(Long userId) {
+        return notificationRepository.getUserNotificationsOrderByNewest(userId);
+    }
+    
+    public Long countUnreadNotifications(Long userId) {
+        return notificationRepository.countUnreadNotificationsForUser(userId);
+    }
+    
+    @Transactional
+    public void markAsRead(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new IllegalArgumentException("Notification not found"));
         notification.setIsRead(true);
         notificationRepository.save(notification);
-    }
-
-    private void sendEmailNotification(String to, String subject, String body) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(SENDER_EMAIL);
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
-            mailSender.send(message);
-        } catch (Exception e) {
-            // Log error but don't fail the operation
-            e.printStackTrace();
-        }
     }
 }
