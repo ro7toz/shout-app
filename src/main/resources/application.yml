@@ -2,110 +2,129 @@ spring:
   application:
     name: shout-app
   
-  # ===== DATABASE CONFIGURATION =====
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/shoutxdb}
-    username: ${DB_USER:shoutxuser}
-    password: ${DB_PASSWORD:password123}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:mysql://localhost:3306/shoutx?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
         jdbc:
           batch_size: 20
-          fetch_size: 50
+        order_inserts: true
+        order_updates: true
     show-sql: false
   
-  # ===== REDIS CONFIGURATION =====
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    timeout: 2000ms
-    jedis:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 60000ms
+      jedis:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
   
-  # ===== EMAIL (GMAIL) CONFIGURATION =====
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:tushkinit@gmail.com}
-    password: ${MAIL_PASSWORD:your_app_password}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-    from: ${MAIL_FROM:noreply@shoutx.co.in}
+  security:
+    oauth2:
+      client:
+        registration:
+          instagram:
+            client-id: ${INSTAGRAM_CLIENT_ID}
+            client-secret: ${INSTAGRAM_CLIENT_SECRET}
+            scope: user_profile,user_media
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/oauth2/callback/instagram"
+        provider:
+          instagram:
+            authorization-uri: https://api.instagram.com/oauth/authorize
+            token-uri: https://graph.instagram.com/oauth/access_token
+            user-info-uri: https://graph.instagram.com/me?fields=id,username,name,profile_picture_url,biography,website,media_count,followers_count
+            user-name-attribute: id
+  
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
   servlet:
     context-path: /
-  compression:
-    enabled: true
-    min-response-size: 1024
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false
 
-# ===== LOGGING =====
 logging:
   level:
     root: INFO
-    com.shout: DEBUG
-    org.springframework.web: INFO
+    com.shoutx: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/shoutx.log
+    max-size: 10MB
+    max-history: 10
 
-# ===== PAYMENT GATEWAY CONFIGURATION =====
+jwt:
+  secret: ${JWT_SECRET:your-secret-key-change-in-production-min-32-chars}
+  expiration: 86400000
+  refresh-token-expiration: 604800000
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:shoutx-media}
+    region: ${AWS_REGION:ap-south-1}
+    access-key: ${AWS_ACCESS_KEY}
+    secret-key: ${AWS_SECRET_KEY}
+
 payment:
   razorpay:
-    key-id: ${RAZORPAY_KEY_ID:rzp_test_xxxxxxxxxxxxx}
-    key-secret: ${RAZORPAY_KEY_SECRET:xxxxxxxxxxxxxxxxxxxxxx}
-    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:your_webhook_secret}
-  
+    key-id: ${RAZORPAY_KEY_ID}
+    key-secret: ${RAZORPAY_KEY_SECRET}
   paypal:
-    client-id: ${PAYPAL_CLIENT_ID:your_paypal_client_id}
-    client-secret: ${PAYPAL_CLIENT_SECRET:your_paypal_client_secret}
+    client-id: ${PAYPAL_CLIENT_ID}
+    client-secret: ${PAYPAL_CLIENT_SECRET}
     mode: ${PAYPAL_MODE:sandbox}
 
-# ===== OAUTH CONFIGURATION =====
-oauth:
-  instagram:
-    client-id: ${INSTAGRAM_CLIENT_ID:your_instagram_client_id}
-    client-secret: ${INSTAGRAM_CLIENT_SECRET:your_instagram_client_secret}
-    access-token: ${INSTAGRAM_GRAPH_API_ACCESS_TOKEN:your_long_lived_token}
-  
-  facebook:
-    app-id: ${FACEBOOK_APP_ID:your_facebook_app_id}
-    app-secret: ${FACEBOOK_APP_SECRET:your_facebook_app_secret}
+email:
+  from: ${EMAIL_FROM:noreply@shoutx.app}
+  sendgrid-api-key: ${SENDGRID_API_KEY}
 
-# ===== SUBSCRIPTION & COMPLIANCE SETTINGS =====
-subscription:
-  max-strikes: 3
-  strike-auto-reset-days: 30
-  ban-duration-days: 30
+instagram:
+  api:
+    version: v18.0
+    base-url: https://graph.instagram.com
+    timeout: 30000
 
-# ===== ACTUATOR & HEALTH MONITORING =====
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,metrics,prometheus
-  endpoint:
-    health:
-      show-details: when-authorized
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+app:
+  name: ShoutX
+  version: 1.0.0
+  description: Influencer Shoutout Exchange Platform
+  cors:
+    allowed-origins: "http://localhost:3000,http://localhost:8080"
+    allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILE:dev}
