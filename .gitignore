@@ -1,42 +1,44 @@
 # IDE
 .idea/
+*.iml
+*.iws
+*.ipr
 .vscode/
 *.swp
 *.swo
-*~
-.DS_Store
 
-# Maven
+# Build
 target/
-*.jar
-!.mvn/wrapper/maven-wrapper.jar
-.mvn/
-
-# Gradle
-.gradle/
 build/
+dist/
+*.class
+*.jar
+*.war
 
-# Node
-node_modules/
-npm-debug.log
+# Log
+logs/
+*.log
 
 # Environment
 .env
 .env.local
 .env.*.local
 
-# Logs
-logs/
-*.log
-
-# Database
-*.db
-*.sqlite
-
 # OS
 .DS_Store
 Thumbs.db
 
-# Application
-application-local.yml
-application-secret.yml
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Spring
+.m2/
+
+# Other
+node_modules/
+.gradle/
+
+# Sensitive
+application-prod.yml
