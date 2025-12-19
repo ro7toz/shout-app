@@ -1,139 +1,158 @@
 package com.shoutx.service;
 
-import com.shoutx.model.User;
-import com.shoutx.model.UserMedia;
+import com.shoutx.entity.User;
 import com.shoutx.repository.UserRepository;
-import com.shoutx.repository.UserMediaRepository;
+import com.shoutx.repository.StrikeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Slf4j
 public class UserService {
-
+    
     private final UserRepository userRepository;
-    private final UserMediaRepository mediaRepository;
-
-    public User createUser(String username, String email, String name, String instagramId) {
+    private final StrikeRepository strikeRepository;
+    private final PasswordEncoder passwordEncoder;
+    
+    public User registerUser(String email, String name, String password) {
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+        
         User user = User.builder()
-                .username(username)
                 .email(email)
                 .name(name)
-                .instagramId(instagramId)
+                .password(passwordEncoder.encode(password))
                 .planType(User.PlanType.BASIC)
+                .isActive(true)
+                .isBanned(false)
+                .isVerified(false)
+                .rating(BigDecimal.ZERO)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
-
+        
         return userRepository.save(user);
     }
-
-    public Optional<User> getUserByUsername(String username) {
-        return userRepository.findByUsername(username);
+    
+    public User registerOrUpdateOAuthUser(String instagramId, String name, String profilePictureUrl, 
+                                          String username, String accessToken) {
+        Optional<User> existingUser = userRepository.findByInstagramId(instagramId);
+        
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            user.setName(name);
+            user.setProfilePictureUrl(profilePictureUrl);
+            user.setUsername(username);
+            user.setInstagramAccessToken(accessToken);
+            user.setUpdatedAt(LocalDateTime.now());
+            return userRepository.save(user);
+        }
+        
+        User newUser = User.builder()
+                .instagramId(instagramId)
+                .name(name)
+                .profilePictureUrl(profilePictureUrl)
+                .username(username)
+                .instagramAccessToken(accessToken)
+                .oauthProvider("INSTAGRAM")
+                .email(instagramId + "@instagram.com")
+                .planType(User.PlanType.BASIC)
+                .isActive(true)
+                .isBanned(false)
+                .isVerified(false)
+                .rating(BigDecimal.ZERO)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        
+        return userRepository.save(newUser);
     }
-
+    
+    @Transactional
+    public User updateProfile(Long userId, String name, String bio, User.AccountType accountType) {
+        User user = getUserById(userId);
+        user.setName(name);
+        user.setBio(bio);
+        user.setAccountType(accountType);
+        user.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(user);
+    }
+    
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+    
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
-
+    
     public Optional<User> getUserByInstagramId(String instagramId) {
         return userRepository.findByInstagramId(instagramId);
     }
-
-    public Optional<User> getUserById(Long userId) {
-        return userRepository.findById(userId);
+    
+    public List<User> searchUsers(User.AccountType genre) {
+        return userRepository.searchUsers(genre);
     }
-
-    public User updateUserProfile(User user, String name, String profileImageUrl, Boolean isVerified) {
-        user.setName(name);
-        user.setProfileImageUrl(profileImageUrl);
-        user.setIsInstagramVerified(isVerified);
-        return userRepository.save(user);
-    }
-
-    public User updateFollowerCount(User user, Long followerCount) {
-        user.setFollowerCount(followerCount);
-        return userRepository.save(user);
-    }
-
-    public User upgradeToPro(User user) {
-        user.setPlanType(User.PlanType.PRO);
-        return userRepository.save(user);
-    }
-
-    public User downgradeToBadge(User user) {
-        user.setPlanType(User.PlanType.BASIC);
-        return userRepository.save(user);
-    }
-
-    public UserMedia addMedia(User user, String mediaUrl, UserMedia.MediaType mediaType, Boolean isFromInstagram) {
-        // Check if user already has max media (3)
-        long mediaCount = mediaRepository.countByUser(user);
-        if (mediaCount >= 3) {
-            throw new RuntimeException("Maximum 3 photos allowed");
-        }
-
-        UserMedia media = UserMedia.builder()
-                .user(user)
-                .mediaUrl(mediaUrl)
-                .mediaType(mediaType)
-                .isFromInstagram(isFromInstagram)
-                .build();
-
-        return mediaRepository.save(media);
-    }
-
-    public void deleteMedia(User user, Long mediaId) {
-        UserMedia media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new RuntimeException("Media not found"));
-
-        if (!media.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized: You can only delete your own media");
-        }
-
-        long mediaCount = mediaRepository.countByUser(user);
-        if (mediaCount <= 1) {
-            throw new RuntimeException("You must have at least 1 photo. Cannot delete last photo.");
-        }
-
-        mediaRepository.delete(media);
-    }
-
-    public List<UserMedia> getUserMedia(User user) {
-        return mediaRepository.findByUser(user);
-    }
-
-    public void addRating(User user, Double rating) {
-        if (rating < 0 || rating > 5) {
-            throw new RuntimeException("Rating must be between 0 and 5");
-        }
-
-        int totalRatings = user.getTotalRatings();
-        Double currentAverage = user.getRating() * totalRatings;
-        Double newAverage = (currentAverage + rating) / (totalRatings + 1);
-
-        user.setRating(newAverage);
-        user.setTotalRatings(totalRatings + 1);
-        userRepository.save(user);
-    }
-
-    public List<User> searchUsersByFollowerRange(Long minFollowers, Long maxFollowers) {
-        return userRepository.findUsersByFollowerRange(minFollowers, maxFollowers);
-    }
-
+    
     public List<User> getActiveUsers() {
-        return userRepository.findActiveUsersSortedByFollowers();
+        return userRepository.findByIsActiveTrueAndIsBannedFalse();
     }
-
-    public List<User> getProUsers() {
-        return userRepository.findProUsers();
+    
+    public List<User> getTopRatedUsers(int limit) {
+        return userRepository.getTopRatedUsers(limit);
     }
-
-    public void banAccount(User user) {
-        user.setIsAccountBanned(true);
-        user.setIsAccountDeleted(true);
+    
+    @Transactional
+    public void banUser(Long userId, String reason) {
+        User user = getUserById(userId);
+        user.setIsBanned(true);
+        user.setBanReason(reason);
+        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+        log.warn("User {} banned for reason: {}", userId, reason);
+    }
+    
+    @Transactional
+    public void unbanUser(Long userId) {
+        User user = getUserById(userId);
+        user.setIsBanned(false);
+        user.setBanReason(null);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        log.info("User {} unbanned", userId);
+    }
+    
+    public Boolean validatePassword(String rawPassword, String encodedPassword) {
+        return passwordEncoder.matches(rawPassword, encodedPassword);
+    }
+    
+    public Long countActiveUsers() {
+        return userRepository.countActiveUsers();
+    }
+    
+    @Transactional
+    public void checkAndBanIfNeeded(Long userId) {
+        Integer strikeCount = strikeRepository.getStrikeCountForUser(userId);
+        if (strikeCount >= 3) {
+            banUser(userId, "Account banned due to 3 strikes");
+        }
+    }
+    
+    public User updateRating(Long userId, Double newRating) {
+        User user = getUserById(userId);
+        user.setRating(new BigDecimal(newRating).setScale(2, java.math.RoundingMode.HALF_UP));
+        user.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(user);
     }
 }
