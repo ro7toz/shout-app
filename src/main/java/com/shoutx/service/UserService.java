@@ -88,6 +88,15 @@ public class UserService {
         return userRepository.save(user);
     }
     
+    @Transactional
+    public void updatePlan(Long userId, User.PlanType planType) {
+        User user = getUserById(userId);
+        user.setPlanType(planType);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        log.info("User {} plan upgraded to {}", userId, planType);
+    }
+    
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
