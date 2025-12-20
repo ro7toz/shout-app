@@ -3,97 +3,147 @@ package com.shout.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * User Model - Complete implementation with all required fields
+ */
 @Entity
-@Table(name = "users", indexes = {
-    @Index(name = "idx_user_category", columnList = "category"),
-    @Index(name = "idx_user_rating", columnList = "average_rating DESC"),
-    @Index(name = "idx_user_active", columnList = "is_active"),
-    @Index(name = "idx_user_facebook_id", columnList = "facebook_id"),
-    @Index(name = "idx_user_email", columnList = "email"),
-    @Index(name = "idx_user_follower_count", columnList = "follower_count"),
-    @Index(name = "idx_user_banned", columnList = "account_banned,is_active"),
-    @Index(name = "idx_user_strikes", columnList = "strike_count")
-})
+@Table(name = "users")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class User {
+   
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+ 
+    // Basic Info
+    @Column(unique = true, nullable = false)
+    private String email;
+ 
+    @Column(nullable = false)
+    private String name;
+ 
+    @Column(unique = true)
     private String username;
-    
-    private String instagramId;
-    private String fullName;
-    private String profilePicUrl;
-    private String category;
-    private Integer followerCount;
-    private String biography;
-    private String websiteUrl;
-    private String accountType;
-    
-    @Builder.Default
-    private Double averageRating = 5.0;
-    
-    @Builder.Default
-    private Integer totalRatings = 0;
-    
-    private String accessToken;
-    private LocalDateTime tokenExpiresAt;
-    
-    private LocalDateTime createdAt;
-    private LocalDateTime lastUpdatedAt;
-    
-    @Builder.Default
-    private Boolean isActive = true;
-
-    // ===== FACEBOOK LOGIN FIELDS =====
-    @Column(unique = true, nullable = true)
-    private String facebookId;              // Facebook user ID
-    
-    private String email;                   // Email from Facebook
-    
-    @Column(name = "facebook_access_token")
-    private String facebookAccessToken;     // Facebook OAuth token
-    
-    @Column(name = "facebook_token_expires_at")
-    private Long facebookTokenExpiresAt;    // When Facebook token expires (Unix timestamp)
-    
-    @Column(name = "name")
-    private String name;                    // User's name from Facebook
-    
+ 
     @Column(name = "profile_picture")
-    private String profilePicture;          // Profile picture URL from Facebook
-    
-    @Column(name = "bio")
-    private String bio;                     // User's bio
-    
-    // ===== END FACEBOOK FIELDS =====
-
-    // ===== COMPLIANCE & STRIKE SYSTEM =====
-    @Builder.Default
+    private String profilePicture;
+ 
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+ 
+    // Instagram Integration
+    @Column(name = "instagram_id")
+    private String instagramId;
+ 
+    @Column(name = "instagram_username")
+    private String instagramUsername;
+ 
+    @Column(name = "instagram_access_token", columnDefinition = "TEXT")
+    private String instagramAccessToken;
+ 
+    // Facebook Integration
+    @Column(name = "facebook_id", unique = true)
+    private String facebookId;
+ 
+    @Column(name = "facebook_access_token", columnDefinition = "TEXT")
+    private String facebookAccessToken;
+ 
+    @Column(name = "facebook_token_expires_at")
+    private Long facebookTokenExpiresAt;
+ 
+    // Account Details
+    @Column(name = "account_type")
+    private String accountType = "Creator";
+ 
+    @Column(name = "plan_type")
+    private String planType = "BASIC";
+ 
+    @Column(name = "is_verified")
+    private Boolean isVerified = false;
+ 
+    private Integer followers = 0;
+ 
+    private String category;
+ 
+    // Ratings
     @Column(nullable = false)
-    private Integer strikeCount = 0; // 0-3 strikes
-
+    private Double rating = 0.0;
+ 
+    @Column(name = "total_ratings")
+    private Integer totalRatings = 0;
+ 
+    // Compliance & Strike System
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean accountBanned = false; // True if strikes >= 3
-
+    @Column(name = "strike_count", nullable = false)
+    private Integer strikeCount = 0;
+ 
     @Builder.Default
-    @Column(nullable = false)
-    private Boolean socialLoginBanned = false; // Ban this social account
-
-    private LocalDateTime bannedAt; // When account was banned
-    // ===== END COMPLIANCE FIELDS =====
-
+    @Column(name = "account_banned", nullable = false)
+    private Boolean accountBanned = false;
+ 
+    @Builder.Default
+    @Column(name = "social_login_banned", nullable = false)
+    private Boolean socialLoginBanned = false;
+ 
+    @Column(name = "banned_at")
+    private LocalDateTime bannedAt;
+ 
+    // Daily Limits
+    @Column(name = "daily_requests_sent")
+    private Integer dailyRequestsSent = 0;
+ 
+    @Column(name = "daily_requests_accepted")
+    private Integer dailyRequestsAccepted = 0;
+ 
+    // Subscription
+    @Column(name = "subscription_start_date")
+    private LocalDateTime subscriptionStartDate;
+ 
+    @Column(name = "subscription_end_date")
+    private LocalDateTime subscriptionEndDate;
+ 
+    // Status
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+ 
+    // Timestamps
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+ 
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+ 
+    // Relationships
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserMedia> mediaItems = new ArrayList<>();
+ 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        lastUpdatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
-
+ 
     @PreUpdate
     protected void onUpdate() {
-        lastUpdatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+ 
+    // Helper methods
+    public boolean isPro() {
+        return "PRO".equalsIgnoreCase(planType);
+    }
+ 
+    public boolean isBanned() {
+        return accountBanned != null && accountBanned;
+    }
+ 
+    public boolean hasMaxStrikes() {
+        return strikeCount != null && strikeCount >= 3;
     }
 }
