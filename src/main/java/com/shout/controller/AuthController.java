@@ -1,237 +1,114 @@
 package com.shout.controller;
 
-import com.shout.dto.UserProfileDTO;
-import com.shout.dto.LoginRequest;
-import com.shout.dto.LoginResponse;
 import com.shout.model.User;
 import com.shout.service.UserService;
 import com.shout.util.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Authentication Controller - Handles login, signup, logout, and token refresh
- * Supports Instagram OAuth 2.0 integration
+ * Authentication Controller - Handles OAuth and media selection
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
+   
+    private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
+   
     /**
-     * POST /api/auth/login
-     * Login with Instagram OAuth token
-     * Returns JWT token and user profile
+     * POST /api/auth/select-media
+     * Store selected media (1-3 items) after OAuth
      */
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    @PostMapping("/select-media")
+    public ResponseEntity<?> selectMediaAfterAuth(
+            @RequestBody Map<String, Object> requestBody) {
         try {
-            log.info("Login attempt for Instagram user: {}", loginRequest.getInstagramUsername());
-
-            // Validate Instagram token (in production, verify with Instagram API)
-            if (loginRequest.getInstagramToken() == null || loginRequest.getInstagramToken().isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Instagram token required"));
+            @SuppressWarnings("unchecked")
+            List<String> mediaIds = (List<String>) requestBody.get("mediaIds");
+            Long userId = ((Number) requestBody.get("userId")).longValue();
+           
+            // Validate media count (1-3)
+            if (mediaIds == null || mediaIds.isEmpty() || mediaIds.size() > 3) {
+                return ResponseEntity.badRequest().body(
+                    Map.of("error", "Please select 1-3 media items")
+                );
             }
-
-            // Find or create user
-            Optional<User> userOptional = userService.findByInstagramUsername(loginRequest.getInstagramUsername());
-            User user;
-
-            if (userOptional.isPresent()) {
-                user = userOptional.get();
-                // Update Instagram data if available
-                if (loginRequest.getFollowers() != null) {
-                    user.setFollowers(loginRequest.getFollowers());
-                }
-                if (loginRequest.getProfilePicture() != null) {
-                    user.setProfilePicture(loginRequest.getProfilePicture());
-                }
-                user = userService.saveUser(user);
-            } else {
-                // New user - create account
-                user = new User();
-                user.setUsername(loginRequest.getInstagramUsername());
-                user.setInstagramUsername(loginRequest.getInstagramUsername());
-                user.setInstagramAccessToken(loginRequest.getInstagramToken());
-                user.setPlanType("BASIC");
-                user.setStrikes(0);
-                user.setRating(0.0);
-                user.setFollowers(loginRequest.getFollowers() != null ? loginRequest.getFollowers() : 0);
-                user.setProfilePicture(loginRequest.getProfilePicture());
-                user.setAccountType("Creator");
-                user.setIsVerified(false);
-                user = userService.saveUser(user);
-            }
-
-            // Generate JWT token
-            String token = jwtTokenProvider.generateToken(user.getId());
-            long expiresIn = jwtTokenProvider.getExpirationTime();
-
-            LoginResponse response = new LoginResponse();
-            response.setToken(token);
-            response.setExpiresIn(expiresIn);
-            response.setUser(userService.getUserProfile(user.getId()));
-
-            log.info("User logged in successfully: {}", user.getUsername());
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Login error", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * POST /api/auth/signup
-     * Create new user account with Instagram data
-     */
-    @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody LoginRequest signupRequest) {
-        try {
-            log.info("Signup attempt for Instagram user: {}", signupRequest.getInstagramUsername());
-
-            // Check if user already exists
-            Optional<User> existingUser = userService.findByInstagramUsername(signupRequest.getInstagramUsername());
-            if (existingUser.isPresent()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "User already exists"));
-            }
-
-            // Create new user
-            User user = new User();
-            user.setUsername(signupRequest.getInstagramUsername());
-            user.setInstagramUsername(signupRequest.getInstagramUsername());
-            user.setInstagramAccessToken(signupRequest.getInstagramToken());
-            user.setPlanType("BASIC"); // All new users start with BASIC plan
-            user.setStrikes(0);
-            user.setRating(0.0);
-            user.setFollowers(signupRequest.getFollowers() != null ? signupRequest.getFollowers() : 0);
-            user.setProfilePicture(signupRequest.getProfilePicture());
-            user.setAccountType(signupRequest.getAccountType() != null ? signupRequest.getAccountType() : "Creator");
-            user.setIsVerified(false);
-            user.setDailyRequestsSent(0);
-            user.setDailyRequestsAccepted(0);
-
-            user = userService.saveUser(user);
-
-            // Generate JWT token
-            String token = jwtTokenProvider.generateToken(user.getId());
-            long expiresIn = jwtTokenProvider.getExpirationTime();
-
-            LoginResponse response = new LoginResponse();
-            response.setToken(token);
-            response.setExpiresIn(expiresIn);
-            response.setUser(userService.getUserProfile(user.getId()));
-
-            log.info("New user created: {}", user.getUsername());
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Signup error", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * POST /api/auth/logout
-     * Logout current user (invalidates token)
-     */
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        try {
-            String token = jwtTokenProvider.getTokenFromRequest(request);
-            if (token != null) {
-                // TODO: Add token to blacklist for additional security
-                log.info("User logged out");
-            }
-            return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
-        } catch (Exception e) {
-            log.error("Logout error", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * POST /api/auth/refresh-token
-     * Refresh JWT token
-     */
-    @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(HttpServletRequest request) {
-        try {
-            String token = jwtTokenProvider.getTokenFromRequest(request);
-            if (token == null || !jwtTokenProvider.validateToken(token)) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid token"));
-            }
-
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            String newToken = jwtTokenProvider.generateToken(userId);
-            long expiresIn = jwtTokenProvider.getExpirationTime();
-
+           
+            // Get user
+            User user = userService.findUserById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+           
+            // Store selected media
+            // TODO: Implement media storage logic
+            // Associate mediaIds with user
+           
+            log.info("User {} selected {} media items", userId, mediaIds.size());
+           
             Map<String, Object> response = new HashMap<>();
-            response.put("token", newToken);
-            response.put("expiresIn", expiresIn);
-
+            response.put("message", "Media selection successful");
+            response.put("mediaCount", mediaIds.size());
+            response.put("userId", userId);
+           
             return ResponseEntity.ok(response);
-
+           
         } catch (Exception e) {
-            log.error("Token refresh error", e);
+            log.error("Error during media selection", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-
+   
     /**
-     * GET /api/auth/me
-     * Get current authenticated user
+     * GET /api/auth/callback/instagram
+     * Instagram OAuth callback handler
      */
-    @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
+    @GetMapping("/callback/instagram")
+    public ResponseEntity<?> handleInstagramCallback(
+            @RequestParam String code,
+            @RequestParam(required = false) String state) {
         try {
-            String token = jwtTokenProvider.getTokenFromRequest(request);
-            if (token == null || !jwtTokenProvider.validateToken(token)) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            // Validate authorization code
+            if (code == null || code.isEmpty()) {
+                return ResponseEntity.badRequest().body(
+                    Map.of("error", "Missing authorization code")
+                );
             }
-
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            UserProfileDTO userProfile = userService.getUserProfile(userId);
-
-            return ResponseEntity.ok(userProfile);
-
+           
+            // TODO: Exchange code for access token
+            // Call Instagram Graph API with code
+            // Receive access_token
+           
+            // TODO: Fetch user data from Instagram
+            // Call Instagram API to get user info
+            // Extract: id, username, name, profile_picture_url
+           
+            // TODO: Create or update user in database
+            // Check if user exists by Instagram ID
+            // If exists: update token and data
+            // If new: create user with BASIC plan
+           
+            log.info("Instagram OAuth callback received for code: {}", code);
+           
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Instagram authentication successful");
+            response.put("status", "pending_media_selection");
+            // response.put("token", jwtToken);
+            response.put("nextStep", "Select 1-3 media items");
+           
+            return ResponseEntity.ok(response);
+           
         } catch (Exception e) {
-            log.error("Error fetching current user", e);
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        }
-    }
-
-    /**
-     * POST /api/auth/verify-instagram-token
-     * Verify Instagram token with Instagram API
-     */
-    @PostMapping("/verify-instagram-token")
-    public ResponseEntity<?> verifyInstagramToken(@RequestBody Map<String, String> request) {
-        try {
-            String instagramToken = request.get("token");
-            // TODO: Implement actual Instagram API verification
-            // This would call Instagram Graph API to verify token validity
-            return ResponseEntity.ok(Map.of("valid", true));
-        } catch (Exception e) {
-            log.error("Instagram token verification error", e);
+            log.error("Instagram OAuth callback error", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
