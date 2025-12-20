@@ -1,25 +1,23 @@
 package com.shout.repository;
 
 import com.shout.model.Notification;
-import com.shout.model.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Notification Repository - Extended
+ */
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    Page<Notification> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
-    
-    List<Notification> findByUserAndIsReadFalseOrderByCreatedAtDesc(User user);
-    
-    Long countByUserAndIsReadFalse(User user);
-    
-    @Query("DELETE FROM Notification n WHERE n.user = :user AND n.createdAt < :cutoffDate")
-    void deleteOldNotifications(@Param("user") User user, @Param("cutoffDate") LocalDateTime cutoffDate);
+   
+    List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
+   
+    List<Notification> findByUserIdAndIsRead(Long userId, Boolean isRead);
+   
+    long countByUserIdAndIsRead(Long userId, Boolean isRead);
+   
+    void deleteByUserIdAndCreatedAtBefore(Long userId, LocalDateTime cutoffDate);
 }
