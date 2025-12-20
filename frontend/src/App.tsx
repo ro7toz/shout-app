@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import HomePageLoggedIn from './pages/HomePageLoggedIn';
 import ProfilePage from './pages/ProfilePage';
+import ProfileMe from './pages/ProfileMe';
 import DashboardPage from './pages/DashboardPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PaymentsPage from './pages/PaymentsPage';
@@ -44,6 +45,14 @@ function AppContent() {
             <Route path="/refund" element={<RefundPage />} />
 
             {/* Protected Routes */}
+            <Route
+              path="/profile/me"
+              element={
+                <ProtectedRoute>
+                  <ProfileMe />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/profile/:userId"
               element={
