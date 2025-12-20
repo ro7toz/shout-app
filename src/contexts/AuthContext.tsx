@@ -12,20 +12,19 @@ interface User {
   isVerified: boolean;
   rating: number;
   strikes: number;
-  mediaItems?: MediaItem[];
-}
-
-interface MediaItem {
-  id: string;
-  url: string;
-  type: string;
+  mediaItems?: Array<{
+    id: string;
+    url: string;
+    type: string;
+  }>;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string, userData: User) => void;
+  login: (token: string, userData: User) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -65,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading }}>
       {children}
     </AuthContext.Provider>
   );
