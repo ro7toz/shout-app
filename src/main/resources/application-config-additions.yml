@@ -1,0 +1,134 @@
+# ====================================================
+# Application Configuration Additions
+# Add these sections to your application.yml or application.properties
+# ====================================================
+
+# Instagram OAuth Configuration
+instagram:
+  client-id: ${INSTAGRAM_CLIENT_ID}
+  client-secret: ${INSTAGRAM_CLIENT_SECRET}
+  redirect-uri: ${INSTAGRAM_REDIRECT_URI:http://localhost:8080/auth/callback/instagram}
+  api-url: https://graph.instagram.com/v19.0
+  graph-api-version: v19.0
+  webhook-secret: ${INSTAGRAM_WEBHOOK_SECRET}
+
+# Facebook OAuth Configuration
+facebook:
+  app-id: ${FACEBOOK_APP_ID}
+  app-secret: ${FACEBOOK_APP_SECRET}
+  api-version: v19.0
+  redirect-uri: ${FACEBOOK_REDIRECT_URI:http://localhost:8080/auth/callback/facebook}
+
+# Spring Task Scheduling Configuration
+spring:
+  task:
+    scheduling:
+      pool:
+        size: 5
+        queue-capacity: 100
+        thread-name-prefix: "shoutx-scheduled-"
+        rejection-policy: DISCARD_OLDEST
+      thread-name-prefix: "shoutx-"
+      shutdown:
+        await-termination: true
+        await-termination-period: 60s
+
+  # Scheduling Configuration
+  scheduling:
+    annotation:
+      enabled: true
+
+# Application-specific configuration
+app:
+  # Rate limiting configuration
+  rate-limit:
+    instagram-api: 100 # per hour
+    daily-requests-basic: 10
+    daily-requests-pro: 50
+    exchanges-per-hour: 5
+
+  # Exchange configuration
+  exchange:
+    default-duration-hours: 24
+    reminder-before-expiry-hours: 2
+    verification-check-interval-minutes: 5
+    expiration-check-interval-minutes: 1
+
+  # Strike configuration
+  strikes:
+    max-strikes: 3
+    strike-for-not-posting: true
+    auto-ban-at-max-strikes: true
+
+  # Notification configuration
+  notifications:
+    send-expiry-reminders: true
+    send-verification-updates: true
+    send-rating-notifications: true
+
+  # Media configuration
+  media:
+    max-media-per-user: 10
+    supported-types:
+      - post
+      - story
+      - reel
+    basic-plan-media-types:
+      - story
+    pro-plan-media-types:
+      - post
+      - story
+      - reel
+
+# Logging Configuration for Scheduled Tasks
+logging:
+  level:
+    com.shout.service.ScheduledTasksService: INFO
+    com.shout.service.InstagramVerificationService: DEBUG
+    org.springframework.scheduling: DEBUG
+
+# ====================================================
+# YAML Format Configuration (If using application.yml)
+# ====================================================
+
+# instagram:
+#   client-id: your-client-id
+#   client-secret: your-client-secret
+#   redirect-uri: http://localhost:8080/auth/callback/instagram
+#   api-url: https://graph.instagram.com/v19.0
+#
+# facebook:
+#   app-id: your-app-id
+#   app-secret: your-app-secret
+#   api-version: v19.0
+#
+# spring:
+#   task:
+#     scheduling:
+#       pool:
+#         size: 5
+#       thread-name-prefix: "shoutx-scheduled-"
+#
+# app:
+#   rate-limit:
+#     instagram-api: 100
+#     daily-requests-basic: 10
+#     daily-requests-pro: 50
+#   exchange:
+#     default-duration-hours: 24
+#     reminder-before-expiry-hours: 2
+
+# ====================================================
+# Environment Variables to Set
+# ====================================================
+#
+# INSTAGRAM_CLIENT_ID=your-instagram-app-id
+# INSTAGRAM_CLIENT_SECRET=your-instagram-app-secret
+# INSTAGRAM_REDIRECT_URI=http://localhost:8080/auth/callback/instagram
+# INSTAGRAM_WEBHOOK_SECRET=your-webhook-secret
+#
+# FACEBOOK_APP_ID=your-facebook-app-id
+# FACEBOOK_APP_SECRET=your-facebook-app-secret
+# FACEBOOK_REDIRECT_URI=http://localhost:8080/auth/callback/facebook
+#
+# ====================================================
