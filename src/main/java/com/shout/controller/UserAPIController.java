@@ -4,111 +4,85 @@ import com.shout.dto.UserProfileDTO;
 import com.shout.model.User;
 import com.shout.service.UserService;
 import com.shout.util.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * User API Controller - Handles user profiles, media, and profile management
+ * User API Controller - User search, discovery, and filtering
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class UserAPIController {
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-
-    /**
-     * GET /api/users/{userId}
-     * Get user profile by ID
-     */
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> getUserProfile(@PathVariable Long userId) {
-        try {
-            UserProfileDTO userProfile = userService.getUserProfile(userId);
-            return ResponseEntity.ok(userProfile);
-        } catch (Exception e) {
-            log.error("Error fetching user profile", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * PUT /api/users/{userId}
-     * Update user profile
-     */
-    @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUserProfile(
-            @PathVariable Long userId,
-            @RequestBody UserProfileDTO updateRequest,
-            HttpServletRequest request) {
-        try {
-            // Verify user is updating their own profile
-            String token = jwtTokenProvider.getTokenFromRequest(request);
-            if (token == null || !jwtTokenProvider.validateToken(token)) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-            }
-
-            Long currentUserId = jwtTokenProvider.getUserIdFromToken(token);
-            if (!currentUserId.equals(userId)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
-            }
-
-            // Update user
-            Optional<User> userOptional = userService.findUserById(userId);
-            if (!userOptional.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            User user = userOptional.get();
-            if (updateRequest.getName() != null) {
-                user.setName(updateRequest.getName());
-            }
-            if (updateRequest.getProfilePicture() != null) {
-                user.setProfilePicture(updateRequest.getProfilePicture());
-            }
-            if (updateRequest.getAccountType() != null) {
-                user.setAccountType(updateRequest.getAccountType());
-            }
-
-            user = userService.saveUser(user);
-            UserProfileDTO response = userService.getUserProfile(user.getId());
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error updating user profile", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
+   
+    private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
+   
     /**
      * GET /api/users/search
-     * Search users with filters
+     * Search users with advanced filtering
+     * Supports: query, genre, followers, repostType
      */
     @GetMapping("/search")
     public ResponseEntity<?> searchUsers(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String genre,
-            @RequestParam(required = false) String followers) {
+            @RequestParam(required = false) String followers,
+            @RequestParam(required = false) String repostType) {
         try {
+            // Get base search results
             List<UserProfileDTO> results = userService.searchUsers(query, genre, followers);
-            return ResponseEntity.ok(results);
+           
+            // Filter by repostType if provided
+            if (repostType != null && !repostType.isEmpty()) {
+                results = filterByRepostType(results, repostType);
+            }
+           
+            log.info("Search completed: query={}, genre={}, repostType={}, results={}",
+                query, genre, repostType, results.size());
+           
+            return ResponseEntity.ok(Map.of(
+                "count", results.size(),
+                "users", results
+            ));
+           
         } catch (Exception e) {
             log.error("Error searching users", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-
+   
+    /**
+     * GET /api/users/{userId}
+     * Get user profile with all details
+     */
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserProfile(
+            @PathVariable Long userId,
+            HttpServletRequest request) {
+        try {
+            User user = userService.findUserById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+           
+            UserProfileDTO profile = convertToProfileDTO(user);
+           
+            return ResponseEntity.ok(profile);
+           
+        } catch (Exception e) {
+            log.error("Error fetching user profile", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+   
     /**
      * GET /api/users/{userId}/media
      * Get user's media items
@@ -116,131 +90,57 @@ public class UserAPIController {
     @GetMapping("/{userId}/media")
     public ResponseEntity<?> getUserMedia(@PathVariable Long userId) {
         try {
-            Optional<User> userOptional = userService.findUserById(userId);
-            if (!userOptional.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            // TODO: Return user's media items
-            // This would fetch media from user.getMediaItems()
-            Map<String, Object> response = new HashMap<>();
-            response.put("mediaItems", new ArrayList<>());
-            response.put("count", 0);
-
-            return ResponseEntity.ok(response);
+            User user = userService.findUserById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+           
+            // TODO: Implement media retrieval logic
+            // Return user's media items (posts, stories, reels)
+           
+            return ResponseEntity.ok(Map.of(
+                "userId", userId,
+                "media", user.getMediaItems()
+            ));
+           
         } catch (Exception e) {
             log.error("Error fetching user media", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-
+   
     /**
-     * POST /api/users/{userId}/media
-     * Upload new media
+     * Helper: Filter users by repost type
+     * story: All plans
+     * post/reel: PRO only
      */
-    @PostMapping("/{userId}/media")
-    public ResponseEntity<?> uploadMedia(
-            @PathVariable Long userId,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("type") String type,
-            HttpServletRequest request) {
-        try {
-            // Verify user is uploading their own media
-            String token = jwtTokenProvider.getTokenFromRequest(request);
-            if (token == null || !jwtTokenProvider.validateToken(token)) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-            }
-
-            Long currentUserId = jwtTokenProvider.getUserIdFromToken(token);
-            if (!currentUserId.equals(userId)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
-            }
-
-            Optional<User> userOptional = userService.findUserById(userId);
-            if (!userOptional.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            // TODO: Implement file upload to S3 or local storage
-            // Save media metadata to database
-            // Check max 3 media limit
-            Map<String, Object> response = new HashMap<>();
-            response.put("id", System.currentTimeMillis());
-            response.put("url", "uploaded_url");
-            response.put("type", type);
-            response.put("createdAt", System.currentTimeMillis());
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error uploading media", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    private List<UserProfileDTO> filterByRepostType(List<UserProfileDTO> users, String repostType) {
+        return users.stream()
+            .filter(user -> {
+                if ("story".equalsIgnoreCase(repostType)) {
+                    return true; // All plans support stories
+                } else if ("post".equalsIgnoreCase(repostType) || "reel".equalsIgnoreCase(repostType)) {
+                    return "PRO".equals(user.getPlanType()); // Only PRO for posts/reels
+                }
+                return true;
+            })
+            .collect(Collectors.toList());
     }
-
+   
     /**
-     * DELETE /api/users/{userId}/media/{mediaId}
-     * Delete media item (cannot delete last media)
+     * Helper: Convert User to UserProfileDTO
      */
-    @DeleteMapping("/{userId}/media/{mediaId}")
-    public ResponseEntity<?> deleteMedia(
-            @PathVariable Long userId,
-            @PathVariable Long mediaId,
-            HttpServletRequest request) {
-        try {
-            // Verify user owns the media
-            String token = jwtTokenProvider.getTokenFromRequest(request);
-            if (token == null || !jwtTokenProvider.validateToken(token)) {
-                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-            }
-
-            Long currentUserId = jwtTokenProvider.getUserIdFromToken(token);
-            if (!currentUserId.equals(userId)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
-            }
-
-            Optional<User> userOptional = userService.findUserById(userId);
-            if (!userOptional.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            User user = userOptional.get();
-            // Check if this is the last media
-            // TODO: Validate media count >= 1 after deletion
-
-            // TODO: Delete media from storage and database
-            return ResponseEntity.ok(Map.of("message", "Media deleted successfully"));
-        } catch (Exception e) {
-            log.error("Error deleting media", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * GET /api/users/{userId}/stats
-     * Get user statistics (ratings, reposts, followers growth)
-     */
-    @GetMapping("/{userId}/stats")
-    public ResponseEntity<?> getUserStats(@PathVariable Long userId) {
-        try {
-            Optional<User> userOptional = userService.findUserById(userId);
-            if (!userOptional.isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-
-            User user = userOptional.get();
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("userId", user.getId());
-            stats.put("totalExchanges", 0); // TODO: Calculate from database
-            stats.put("completionRate", 100); // TODO: Calculate from database
-            stats.put("averageRating", user.getRating());
-            stats.put("strikes", user.getStrikes());
-            stats.put("followers", user.getFollowers());
-            stats.put("followerGrowth", 0); // TODO: Calculate from analytics
-
-            return ResponseEntity.ok(stats);
-        } catch (Exception e) {
-            log.error("Error fetching user stats", e);
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    private UserProfileDTO convertToProfileDTO(User user) {
+        UserProfileDTO dto = new UserProfileDTO();
+        dto.setId(user.getId());
+        dto.setName(user.getName());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setProfilePicture(user.getProfilePicture());
+        dto.setPlanType(user.getPlanType());
+        dto.setFollowers(user.getFollowers());
+        dto.setAccountType(user.getAccountType());
+        dto.setIsVerified(user.getIsVerified());
+        dto.setRating(user.getRating());
+        dto.setStrikes(user.getStrikeCount());
+        return dto;
     }
 }
