@@ -4,48 +4,46 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * Notification model - user notifications
+ */
 @Entity
-@Table(name = "notifications", indexes = {
-    @Index(name = "idx_notification_user", columnList = "user_id"),
-    @Index(name = "idx_notification_read", columnList = "user_id, is_read")
-})
+@Table(name = "notifications")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"user", "relatedRequest"})
-@EqualsAndHashCode(exclude = {"user", "relatedRequest"})
+@Builder
 public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "username")
-    private User user;
-    
-    @Enumerated(EnumType.STRING)
-    private NotificationType type;
-    
+ 
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+ 
+    @Column(nullable = false)
+    private String type; // REQUEST_RECEIVED, REQUEST_ACCEPTED, EXCHANGE_COMPLETED, STRIKE_ADDED, etc.
+ 
+    @Column(nullable = false)
     private String title;
+ 
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String message;
-    private String actionUrl;
-    
-    @Builder.Default
+ 
+    @Column(name = "related_user_id")
+    private Long relatedUserId;
+ 
+    @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
-    
+ 
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "related_request_id")
-    private ShoutoutRequest relatedRequest;
-
+ 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-    }
-
-    public enum NotificationType {
-        REQUEST_RECEIVED, REQUEST_ACCEPTED, REQUEST_EXPIRED, BAD_RATING, ADDED_TO_CIRCLE
+        if (isRead == null) {
+            isRead = false;
+        }
     }
 }
