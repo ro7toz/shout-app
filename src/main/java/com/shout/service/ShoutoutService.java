@@ -1,94 +1,83 @@
 package com.shout.service;
 
+import com.shout.dto.ExchangeDTO;
 import com.shout.model.*;
-import com.shout.repository.ShoutoutRequestRepository;
-import com.shout.repository.UserRepository;
+import com.shout.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Shoutout Service - handles shoutout exchanges
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ShoutoutService {
-    private final ShoutoutRequestRepository shoutoutRequestRepository;
+   
+    private final ShoutoutRequestRepository requestRepository;
     private final UserRepository userRepository;
-    private final SubscriptionService subscriptionService;
-
+   
     /**
-     * Create a new shoutout request with media type validation
+     * Get user exchanges
+     */
+    public List<ExchangeDTO> getUserExchanges(Long userId) {
+        // Implementation to fetch user exchanges
+        List<ExchangeDTO> exchanges = new ArrayList<>();
+        // TODO: Implement exchange fetching logic
+        return exchanges;
+    }
+   
+    /**
+     * Get pending shoutout requests for user
+     */
+    public List<ShoutoutRequest> getPendingRequests(Long userId, int page, int pageSize) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+       
+        // TODO: Implement pagination
+        return new ArrayList<>();
+    }
+   
+    /**
+     * Get sent shoutout requests
+     */
+    public List<ShoutoutRequest> getSentRequests(Long userId, int page, int pageSize) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+       
+        // TODO: Implement pagination
+        return new ArrayList<>();
+    }
+   
+    /**
+     * Send shoutout request
      */
     @Transactional
-    public ShoutoutRequest createRequest(String requesterUsername, String targetUsername, 
-                                        String postLink, ShoutoutRequest.MediaType mediaType) {
-        User requester = userRepository.findById(requesterUsername)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Requester not found"));
-        
-        User target = userRepository.findById(targetUsername)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Target not found"));
-
-        // ✅ NEW: Validate media type access based on subscription
-        if (!subscriptionService.canAccessMediaType(requester, mediaType)) {
-            log.warn("❌ User {} tried to request {} but not PRO", requesterUsername, mediaType);
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST, 
-                "Upgrade to PRO to request posts and reels"
-            );
-        }
-
-        ShoutoutRequest request = ShoutoutRequest.builder()
-            .requester(requester)
-            .target(target)
-            .postLink(postLink)
-            .mediaType(mediaType)
-            .status(ShoutoutRequest.RequestStatus.PENDING)
-            .build();
-
-        ShoutoutRequest saved = shoutoutRequestRepository.save(request);
-        log.info("✅ Shoutout request created: {} -> {} ({})", 
-            requesterUsername, targetUsername, mediaType);
-        
-        return saved;
+    public ShoutoutRequest sendShoutoutRequest(ShoutoutRequest request) {
+        request.setCreatedAt(LocalDateTime.now());
+        request.setStatus("PENDING");
+        return requestRepository.save(request);
     }
-
+   
     /**
-     * Accept a shoutout request
+     * Get shoutout request by ID
+     */
+    public Optional<ShoutoutRequest> getShoutoutRequestById(Long id) {
+        return requestRepository.findById(id);
+    }
+   
+    /**
+     * Update shoutout request
      */
     @Transactional
-    public ShoutoutRequest acceptRequest(Long requestId) {
-        ShoutoutRequest request = shoutoutRequestRepository.findById(requestId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
-
-        request.setStatus(ShoutoutRequest.RequestStatus.ACCEPTED);
-        request.setAcceptedAt(LocalDateTime.now());
-
-        ShoutoutRequest saved = shoutoutRequestRepository.save(request);
-        log.info("✅ Request {} accepted by {}", requestId, request.getTarget().getUsername());
-        
-        return saved;
-    }
-
-    /**
-     * Get all pending requests for a user
-     */
-    public List<ShoutoutRequest> getPendingRequests(String targetUsername) {
-        return shoutoutRequestRepository.findByTargetUsernameAndStatus(
-            targetUsername, 
-            ShoutoutRequest.RequestStatus.PENDING
-        );
-    }
-
-    /**
-     * Get user's sent requests
-     */
-    public List<ShoutoutRequest> getSentRequests(String requesterUsername) {
-        return shoutoutRequestRepository.findByRequesterUsername(requesterUsername);
+    public ShoutoutRequest updateShoutoutRequest(ShoutoutRequest request) {
+        return requestRepository.save(request);
     }
 }
