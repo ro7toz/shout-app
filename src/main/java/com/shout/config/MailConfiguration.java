@@ -32,14 +32,20 @@ public class MailConfiguration {
         mailSender.setPassword(password);
 
         Properties props = mailSender.getJavaMailProperties();
-        props.put("mail.smtp.auth", true);
-        props.put("mail.smtp.starttls.enable", true);
-        props.put("mail.smtp.starttls.required", true);
-        props.put("mail.smtp.connectiontimeout", 5000);
-        props.put("mail.smtp.timeout", 5000);
-        props.put("mail.smtp.writetimeout", 5000);
-        props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-        props.put("mail.smtp.socketFactory.fallback", false);
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.starttls.required", "true");
+        props.put("mail.smtp.connectiontimeout", "5000");
+        props.put("mail.smtp.timeout", "5000");
+        props.put("mail.smtp.writetimeout", "5000");
+        
+        // SSL/TLS configuration - use STARTTLS instead of SSL
+        props.put("mail.smtp.ssl.enable", "false");
+        props.put("mail.smtp.ssl.trust", host);
+        
+        // Debug mode (set to false in production)
+        props.put("mail.debug", "false");
 
         return mailSender;
     }
