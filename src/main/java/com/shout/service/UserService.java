@@ -2,6 +2,7 @@ package com.shout.service;
 
 import com.shout.dto.UserMediaDTO;
 import com.shout.dto.UserProfileDTO;
+import com.shout.exception.ResourceNotFoundException;
 import com.shout.model.User;
 import com.shout.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +26,18 @@ public class UserService {
     private final UserRepository userRepository;
    
     /**
-     * Find user by ID
+     * Find user by ID (returns Optional)
      */
     public Optional<User> findUserById(Long id) {
         return userRepository.findById(id);
+    }
+    
+    /**
+     * Get user by ID (throws exception if not found)
+     */
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
     }
    
     /**
@@ -57,9 +66,7 @@ public class UserService {
      * Get user profile DTO
      */
     public UserProfileDTO getUserProfile(Long userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-       
+        User user = getUserById(userId);
         return convertToProfileDTO(user);
     }
    
@@ -127,7 +134,21 @@ public class UserService {
        
         // Convert media items
         List<UserMediaDTO> mediaItems = new ArrayList<>();
-        // TODO: Fetch actual media items from database
+        if (user.getMediaItems() != null) {
+            mediaItems = user.getMediaItems().stream()
+                .map(media -> {
+                    UserMediaDTO mediaDto = new UserMediaDTO();
+                    mediaDto.setId(media.getId());
+                    mediaDto.setUrl(media.getUrl());
+                    mediaDto.setType(media.getType());
+                    mediaDto.setSource(media.getSource());
+                    if (media.getCreatedAt() != null) {
+                        mediaDto.setCreatedAt(media.getCreatedAt().getSecond());
+                    }
+                    return mediaDto;
+                })
+                .collect(Collectors.toList());
+        }
         dto.setMediaItems(mediaItems);
        
         return dto;
@@ -138,8 +159,7 @@ public class UserService {
      */
     @Transactional
     public User updateUserProfile(Long userId, UserProfileDTO updateData) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = getUserById(userId);
        
         if (updateData.getName() != null) {
             user.setName(updateData.getName());
@@ -183,5 +203,19 @@ public class UserService {
         });
         userRepository.saveAll(users);
         log.info("Reset daily counters for {} users", users.size());
+    }
+    
+    /**
+     * Check if user exists by email
+     */
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+    
+    /**
+     * Check if user exists by Instagram username
+     */
+    public boolean existsByInstagramUsername(String instagramUsername) {
+        return userRepository.existsByInstagramUsername(instagramUsername);
     }
 }
