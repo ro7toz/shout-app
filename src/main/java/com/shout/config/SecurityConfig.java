@@ -20,17 +20,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // CSRF Configuration - Disable for API endpoints
-            .csrf(csrf -> csrf
-                .ignoringRequestMatchers(
-                    "/api/**",              // All REST API endpoints
-                    "/oauth2/**",           // OAuth callbacks
-                    "/auth/callback/**",    // Auth callbacks
-                    "/actuator/**"          // Actuator endpoints
-                )
-            )
+            // CSRF - Disabled for REST API
+            .csrf(csrf -> csrf.disable())
             
-            // CORS Configuration
+            // CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             
             // Authorization Rules
@@ -43,7 +36,9 @@ public class SecurityConfig {
                     "/images/**",
                     "/favicon.ico",
                     "/robots.txt",
-                    "/sitemap.xml"
+                    "/sitemap.xml",
+                    "/static/**",
+                    "/index.html"
                 ).permitAll()
                 
                 // Public pages
@@ -57,7 +52,7 @@ public class SecurityConfig {
                     "/faq"
                 ).permitAll()
                 
-                // Health check endpoints
+                // Health check
                 .requestMatchers(
                     "/actuator/health",
                     "/actuator/health/**"
@@ -66,45 +61,33 @@ public class SecurityConfig {
                 // Public API endpoints
                 .requestMatchers(
                     "/api/auth/**",
-                    "/api/public/**"
+                    "/api/public/**",
+                    "/oauth2/**",
+                    "/auth/callback/**"
                 ).permitAll()
                 
-                // Protected endpoints - require authentication
+                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             
-            // Session Management - Stateless for APIs
+            // Session Management - Stateless for API
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             
-            // OAuth2 Login Configuration
+            // OAuth2 Login - Instagram Only
             .oauth2Login(oauth2 -> oauth2
                 .loginPage("/login")
-                .defaultSuccessUrl("/dashboard", true)
+                .defaultSuccessUrl("/", true)
                 .failureUrl("/login?error=true")
             )
             
-            // Logout Configuration
+            // Logout
             .logout(logout -> logout
                 .logoutSuccessUrl("/")
                 .invalidateHttpSession(true)
                 .clearAuthentication(true)
                 .deleteCookies("JSESSIONID")
-            )
-            
-            // Security Headers
-            .headers(headers -> headers
-                .contentSecurityPolicy(csp -> csp.policyDirectives(
-                    "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-inline' cdn.tailwindcss.com unpkg.com connect.facebook.net; " +
-                    "style-src 'self' 'unsafe-inline' cdn.tailwindcss.com fonts.googleapis.com; " +
-                    "font-src 'self' fonts.gstatic.com; " +
-                    "img-src 'self' data: https: *.fbcdn.net *.cdninstagram.com; " +
-                    "connect-src 'self' https://graph.facebook.com https://graph.instagram.com"
-                ))
-                .frameOptions(frame -> frame.deny())
-                .xssProtection(xss -> xss.disable()) // Modern browsers use CSP
             );
 
         return http.build();
@@ -114,20 +97,20 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allowed origins - Update for production
+        // Allowed origins - Add your frontend URLs
         List<String> allowedOrigins = Arrays.asList(
-            "http://localhost:8080",
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:8080",
+            "http://localhost:3000",      // React dev server (Vite custom)
+            "http://localhost:5173",      // React dev server (Vite default)
+            "http://localhost:8080",      // Backend
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
-            "https://shoutx.co.in",
+            "http://127.0.0.1:8080",
+            "https://shoutx.co.in",       // Production frontend
             "https://www.shoutx.co.in",
-            "https://shoutx-prod.elasticbeanstalk.com"
+            "https://*.elasticbeanstalk.com"  // AWS Elastic Beanstalk
         );
         
-        configuration.setAllowedOrigins(allowedOrigins);
+        configuration.setAllowedOriginPatterns(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Total-Count"));
