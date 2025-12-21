@@ -35,15 +35,42 @@ spring:
       timeout: 60000ms
   
   # Security / OAuth2 Configuration - OPTIONAL (can be disabled for mock login)
-  security:
-    oauth2:
-      client:
-        registration:
-          instagram:
-            client-id: ${INSTAGRAM_CLIENT_ID:dummy}
-            client-secret: ${INSTAGRAM_CLIENT_SECRET:dummy}
-            scope: user_profile,user_media
-            authorization-grant-type: authorization_code
+  spring:
+  application:
+    name: shoutx-app
+  
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/shoutdb}
+    username: ${DB_USER:shoutuser}
+    password: ${DB_PASSWORD:password123}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  server:
+    port: 8080
+
+  jwt:
+    secret: ${JWT_SECRET:shoutx-super-secure-jwt-secret-key-minimum-32-characters-required}
+    expiration: 86400000
+
+  logging:
+    level:
+      com.shout: DEBUG
+      org.springframework.web: DEBUG
   
   # Mail Configuration
   mail:
