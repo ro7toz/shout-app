@@ -1,16 +1,20 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { HomePageLoggedOut, HomePageLoggedIn } from './pages/HomePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { DashboardPage } from './pages/DashboardPage';
+import { TermsPage } from './pages/TermsPage';
 import Header from './components/ui/Header';
 import Footer from './components/ui/Footer';
 
 const ProtectedRoute = ({ children, requireAuth = false }: { children: React.ReactNode; requireAuth?: boolean }) => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -18,15 +22,15 @@ const ProtectedRoute = ({ children, requireAuth = false }: { children: React.Rea
       </div>
     );
   }
-  
+
   if (requireAuth && !isAuthenticated) {
     return <Navigate to="/" replace />;
   }
-  
+
   if (!requireAuth && isAuthenticated) {
     return <Navigate to="/home" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -48,8 +52,11 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<ProtectedRoute><HomePageLoggedOut /></ProtectedRoute>} />
       <Route path="/home" element={<ProtectedRoute requireAuth><HomePageLoggedIn /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute requireAuth><DashboardPage /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute requireAuth><NotificationsPage /></ProtectedRoute>} />
       <Route path="/payments" element={<ProtectedRoute requireAuth><PaymentsPage /></ProtectedRoute>} />
+      <Route path="/profile/:userId" element={<ProtectedRoute requireAuth><ProfilePage /></ProtectedRoute>} />
+      <Route path="/profile/me" element={<ProtectedRoute requireAuth><ProfilePage /></ProtectedRoute>} />
       <Route path="/terms" element={<StaticPage title="Terms & Conditions" />} />
       <Route path="/privacy" element={<StaticPage title="Privacy Policy" />} />
       <Route path="/refund" element={<StaticPage title="Refund Policy" />} />
@@ -63,6 +70,7 @@ const App = () => {
     <AuthProvider>
       <DataProvider>
         <Router>
+          <Toaster position="top-right" richColors />
           <AppRoutes />
         </Router>
       </DataProvider>
