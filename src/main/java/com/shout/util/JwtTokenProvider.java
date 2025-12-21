@@ -8,8 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+// ✅ FIXED: Changed from javax to jakarta
+import jakarta.servlet.http.HttpServletRequest;
 import javax.crypto.SecretKey;
-import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
