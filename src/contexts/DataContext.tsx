@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import type { ShoutoutRequest, Exchange, Notification } from '../types';
 import { api } from '../services/api';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 interface DataContextType {
   requests: ShoutoutRequest[];
@@ -10,7 +11,7 @@ interface DataContextType {
   loading: boolean;
   sendShoutoutRequest: (receiverId: string, mediaId: string) => Promise<void>;
   acceptRequest: (requestId: string) => Promise<void>;
-  rateExchange: (exchangeId: string, rating: number) => Promise<void>;
+  rateExchange: (exchangeId: string, rating: number, ratedUserId: string, review?: string) => Promise<void>;
   fetchRequests: () => Promise<void>;
   fetchExchanges: () => Promise<void>;
   fetchNotifications: () => Promise<void>;
@@ -45,6 +46,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setRequests([...received.data.requests, ...sent.data.requests]);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
+      toast.error('Failed to load requests');
     } finally {
       setLoading(false);
     }
@@ -57,6 +59,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setExchanges(response.data);
     } catch (error) {
       console.error('Failed to fetch exchanges:', error);
+      toast.error('Failed to load exchanges');
     }
   };
 
@@ -73,9 +76,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const sendShoutoutRequest = async (receiverId: string, mediaId: string) => {
     try {
       await api.sendRequest(receiverId, mediaId);
+      toast.success('Request sent successfully!');
       await fetchRequests();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send request:', error);
+      toast.error(error.response?.data?.message || 'Failed to send request');
       throw error;
     }
   };
@@ -83,20 +88,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const acceptRequest = async (requestId: string) => {
     try {
       await api.acceptRequest(requestId);
+      toast.success('Request accepted! You have 24 hours to complete.');
       await fetchRequests();
       await fetchExchanges();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to accept request:', error);
+      toast.error(error.response?.data?.message || 'Failed to accept request');
       throw error;
     }
   };
 
-  const rateExchange = async (exchangeId: string, rating: number) => {
+  const rateExchange = async (exchangeId: string, rating: number, ratedUserId: string, review?: string) => {
     try {
-      await api.rateRequest(exchangeId, rating);
+      await api.rateExchange(exchangeId, rating, ratedUserId, review);
+      toast.success('Rating submitted successfully!');
       await fetchExchanges();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to rate exchange:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit rating');
       throw error;
     }
   };
@@ -117,6 +126,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       fetchRequests();
       fetchExchanges();
       fetchNotifications();
+
+      // Poll for updates every 30 seconds
+      const interval = setInterval(() => {
+        fetchNotifications();
+        fetchExchanges();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }
   }, [isAuthenticated]);
 
