@@ -1,43 +1,78 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { User } from '../types';
+import { api } from '../services/api';
 
-const AuthContext = createContext(null);
+interface AuthContextType {
+  user: User | null;
+  login: (userData: User) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+  loading: boolean;
+  setToken: (token: string) => void;
+  upgradeToPro: () => void;
+}
 
-const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-  // Mock user for demo
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const mockUser = {
-      id: '1',
-      name: 'John Doe',
-      username: '@johndoe',
-      email: 'john@example.com',
-      profilePicture: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
-      planType: 'BASIC',
-      followers: 12500,
-      accountType: 'Creator',
-      isVerified: true,
-      rating: 4.5,
-      strikes: 0,
-      mediaItems: [
-        { id: '1', url: 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400', type: 'image' },
-        { id: '2', url: 'https://images.unsplash.com/photo-1682687221038-404670f1c00f?w=400', type: 'image' },
-      ]
-    };
-    // setUser(mockUser); // Uncomment for logged-in view
+    const token = localStorage.getItem('auth_token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (token && storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Failed to parse stored user:', error);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+      }
+    }
+    setLoading(false);
   }, []);
 
-  const login = (userData) => setUser(userData);
-  const logout = () => setUser(null);
+  const setToken = (token: string) => {
+    localStorage.setItem('auth_token', token);
+  };
+
+  const login = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  };
+
+  const upgradeToPro = async () => {
+    window.location.href = '/payments';
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      isAuthenticated: !!user, 
+      loading,
+      setToken,
+      upgradeToPro
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-const useAuth = () => useContext(AuthContext);
-
-export { AuthProvider, useAuth };
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
