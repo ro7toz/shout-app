@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * ShoutoutRequest Model - FIXED
+ * Critical fix: JoinColumn now references 'id' instead of 'username'
+ */
 @Entity
 @Table(name = "shoutout_requests", indexes = {
     @Index(name = "idx_request_status", columnList = "status"),
@@ -19,50 +23,69 @@ import java.time.LocalDateTime;
 @ToString(exclude = {"requester", "target"})
 @EqualsAndHashCode(exclude = {"requester", "target"})
 public class ShoutoutRequest {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    // ✅ FIXED: Now references 'id' instead of 'username'
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requester_id", referencedColumnName = "username")
+    @JoinColumn(name = "requester_id", referencedColumnName = "id", nullable = false)
     private User requester;
     
+    // ✅ FIXED: Now references 'id' instead of 'username'
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "target_id", referencedColumnName = "username")
+    @JoinColumn(name = "target_id", referencedColumnName = "id", nullable = false)
     private User target;
     
+    @Column(name = "post_link")
     private String postLink;
     
-    // ✅ NEW: Media type field for BASIC vs PRO access control
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    @Column(nullable = false)
+    @Column(nullable = false, name = "media_type")
     private MediaType mediaType = MediaType.STORY;
     
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private RequestStatus status;
     
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+    
+    @Column(name = "accepted_at")
     private LocalDateTime acceptedAt;
+    
+    @Column(name = "completed_at")
     private LocalDateTime completedAt;
     
     @Builder.Default
+    @Column(name = "requester_posted", nullable = false)
     private Boolean requesterPosted = false;
+    
+    @Column(name = "requester_posted_at")
     private LocalDateTime requesterPostedAt;
     
     @Builder.Default
+    @Column(name = "target_posted", nullable = false)
     private Boolean targetPosted = false;
+    
+    @Column(name = "target_posted_at")
     private LocalDateTime targetPostedAt;
     
     @Builder.Default
+    @Column(name = "is_expired", nullable = false)
     private Boolean isExpired = false;
     
     @Builder.Default
+    @Column(name = "is_notified", nullable = false)
     private Boolean isNotified = false;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
         if (status == null) {
             status = RequestStatus.PENDING;
         }
@@ -72,10 +95,14 @@ public class ShoutoutRequest {
     }
 
     public enum RequestStatus {
-        PENDING, ACCEPTED, COMPLETED, FAILED, REJECTED
+        PENDING, 
+        ACCEPTED, 
+        COMPLETED, 
+        FAILED, 
+        REJECTED,
+        EXPIRED
     }
     
-    // ✅ NEW: Media type enum for subscription tier control
     public enum MediaType {
         STORY,  // Available to BASIC and PRO users
         POST,   // PRO users only
