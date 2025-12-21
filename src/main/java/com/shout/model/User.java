@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * User Model - Complete implementation with all required fields
+ * FIXED User Entity - Aligned with database schema
  */
 @Entity
 @Table(name = "users")
@@ -27,16 +27,6 @@ public class User {
  
     @Column(nullable = false)
     private String name;
-    
-    // Alias for fullName - for backward compatibility
-    @Transient
-    public String getFullName() {
-        return this.name;
-    }
-    
-    public void setFullName(String fullName) {
-        this.name = fullName;
-    }
  
     @Column(unique = true)
     private String username;
@@ -77,7 +67,9 @@ public class User {
     @Column(name = "is_verified")
     private Boolean isVerified = false;
  
-    private Integer followers = 0;
+    // FIXED: Changed from 'followers' to 'follower_count' to match DB
+    @Column(name = "follower_count")
+    private Integer followerCount = 0;
  
     private String category;
  
@@ -157,24 +149,28 @@ public class User {
         return strikeCount != null && strikeCount >= 3;
     }
     
-    // Additional getters for backward compatibility
-    public Integer getFollowerCount() {
-        return this.followers;
+    // FIXED: Alias methods for backward compatibility
+    public Integer getFollowers() {
+        return this.followerCount;
     }
     
-    public void setFollowerCount(Integer followerCount) {
-        this.followers = followerCount;
+    public void setFollowers(Integer followers) {
+        this.followerCount = followers;
     }
     
-    public Integer getStrikeCount() {
+    public Integer getStrikes() {
         return this.strikeCount;
     }
     
-    public String getProfilePictureUrl() {
-        return this.profilePicture;
+    public void setStrikes(Integer strikes) {
+        this.strikeCount = strikes;
     }
     
-    public void setProfilePictureUrl(String url) {
-        this.profilePicture = url;
+    public String getFullName() {
+        return this.name;
+    }
+    
+    public void setFullName(String fullName) {
+        this.name = fullName;
     }
 }
