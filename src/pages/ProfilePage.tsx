@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
 import { AlertCircle, Upload, Trash2 } from 'lucide-react';
+import Header from '../components/ui/Header';
+import Footer from '../components/ui/Footer';
 
 export const ProfilePage: React.FC = () => {
   const { user, upgradeToPro } = useAuth();
@@ -11,7 +11,11 @@ export const ProfilePage: React.FC = () => {
   const [isOwnProfile] = useState(true);
 
   if (!user) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   const mediaToRepost = requests.filter(
@@ -19,21 +23,22 @@ export const ProfilePage: React.FC = () => {
   );
 
   return (
-    <>
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <div className="flex flex-col items-center justify-center flex-1 bg-background p-4">
+        <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg">
+          <div className="p-6 text-center">
             <div className="flex justify-center mb-4">
               <img
                 src={user.profilePicture}
                 alt={user.name}
-                className="w-24 h-24 rounded-full"
+                className="w-24 h-24 rounded-full border-4 border-purple-600"
               />
             </div>
-            <CardTitle className="text-3xl">{user.name}</CardTitle>
+            <h2 className="text-3xl font-bold">{user.name}</h2>
             <p className="text-muted-foreground">{user.username}</p>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          </div>
+          <div className="border-t p-6 space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold">{user.followers.toLocaleString()}</p>
@@ -41,7 +46,7 @@ export const ProfilePage: React.FC = () => {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold">
-                  {user.planType === 'pro' ? 'Pro' : 'Basic'}
+                  {user.planType === 'PRO' ? 'Pro' : 'Basic'}
                 </p>
                 <p className="text-sm text-muted-foreground">Plan Type</p>
               </div>
@@ -62,36 +67,46 @@ export const ProfilePage: React.FC = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   Upload photos or media from Instagram (max 3, min 1)
                 </p>
-                <Button variant="outline" className="w-full">
-                  <Upload className="w-4 h-4 mr-2" />
+                <button className="w-full py-2 px-4 border-2 border-gray-300 rounded-lg hover:border-purple-600 transition font-medium">
+                  <Upload className="w-4 h-4 mr-2 inline" />
                   Upload Media
-                </Button>
+                </button>
               </div>
               <div className="space-y-2">
-                {user.mediaItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-2 p-2 bg-muted rounded">
-                    <img
-                      src={item.url}
-                      alt="Media"
-                      className="w-10 h-10 rounded"
-                    />
-                    <span className="flex-1 text-sm">{item.type}</span>
-                    <Button variant="ghost" size="sm">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+                {user.mediaItems && user.mediaItems.length > 0 ? (
+                  user.mediaItems.map((item) => (
+                    <div key={item.id} className="flex items-center gap-2 p-2 bg-muted rounded">
+                      <img
+                        src={item.url}
+                        alt="Media"
+                        className="w-10 h-10 rounded"
+                      />
+                      <span className="flex-1 text-sm">{item.type}</span>
+                      <button className="p-2 hover:bg-red-100 rounded transition">
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No media uploaded yet</p>
+                )}
               </div>
             </div>
 
-            {user.planType === 'basic' && (
-              <Button onClick={upgradeToPro} className="w-full" variant="default">
+            {user.planType === 'BASIC' && (
+              <button 
+                onClick={upgradeToPro}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-500 text-white rounded-lg font-medium hover:shadow-lg transition"
+              >
                 Upgrade to Pro
-              </Button>
+              </button>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
-    </>
+      <Footer />
+    </div>
   );
 };
+
+export default ProfilePage;
