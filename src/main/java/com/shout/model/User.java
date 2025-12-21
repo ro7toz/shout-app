@@ -27,6 +27,16 @@ public class User {
  
     @Column(nullable = false)
     private String name;
+    
+    // Alias for fullName - for backward compatibility
+    @Transient
+    public String getFullName() {
+        return this.name;
+    }
+    
+    public void setFullName(String fullName) {
+        this.name = fullName;
+    }
  
     @Column(unique = true)
     private String username;
@@ -145,5 +155,26 @@ public class User {
  
     public boolean hasMaxStrikes() {
         return strikeCount != null && strikeCount >= 3;
+    }
+    
+    // Additional getters for backward compatibility
+    public Integer getFollowerCount() {
+        return this.followers;
+    }
+    
+    public void setFollowerCount(Integer followerCount) {
+        this.followers = followerCount;
+    }
+    
+    public Integer getStrikeCount() {
+        return this.strikeCount;
+    }
+    
+    public String getProfilePictureUrl() {
+        return this.profilePicture;
+    }
+    
+    public void setProfilePictureUrl(String url) {
+        this.profilePicture = url;
     }
 }
