@@ -10,9 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+
 import java.time.LocalDateTime;
 import java.util.*;
+import jakarta.servlet.http.HttpServletRequest;
+
 
 /**
  * Shoutout API Controller - Handles shoutout requests and exchanges
