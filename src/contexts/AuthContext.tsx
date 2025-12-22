@@ -1,16 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from '../types';
 import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
-  login: (userData: User) => void;
+  login: (userData: User, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
-  setToken: (token: string) => void;
-  upgradeToPro: () => void;
-  updateUser: (userData: Partial<User>) => void;
+  handleInstagramCallback: (code: string, state: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -18,6 +17,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -36,21 +36,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
-  const setToken = (token: string) => {
-    localStorage.setItem('auth_token', token);
-  };
+  // ✅ FIX: Add Instagram callback handler
+  const handleInstagramCallback = async (code: string, state: string) => {
+    try {
+      setLoading(true);
+      console.log('🔐 Processing Instagram callback...');
+      
+      const response = await api.instagramCallback(code, state);
+      const authData = response.data;
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      if (authData.success && authData.token && authData.user) {
+        // Store auth data
+        localStorage.setItem('auth_token', authData.token);
+        localStorage.setItem('user', JSON.stringify(authData.user));
+        
+        // Update state
+        setUser(authData.user);
+        
+        console.log('✅ Authentication successful');
+        navigate('/home');
+      } else {
+        throw new Error(authData.message || 'Authentication failed');
+      }
+    } catch (error: any) {
+      console.error('❌ Instagram auth error:', error);
+      alert('Authentication failed: ' + (error.response?.data?.message || error.message));
+      navigate('/');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const login = (userData: User, token: string) => {
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
@@ -60,10 +80,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.location.href = '/';
   };
 
-  const upgradeToPro = async () => {
-    window.location.href = '/payments';
-  };
-
   return (
     <AuthContext.Provider value={{
       user,
@@ -71,9 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout,
       isAuthenticated: !!user,
       loading,
-      setToken,
-      upgradeToPro,
-      updateUser
+      handleInstagramCallback
     }}>
       {children}
     </AuthContext.Provider>
