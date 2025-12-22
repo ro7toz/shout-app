@@ -29,8 +29,8 @@ jwt:
   expiration: 86400000
 
 instagram:
-  client-id: ${INSTAGRAM_CLIENT_ID}
-  client-secret: ${INSTAGRAM_CLIENT_SECRET}
+  client-id: ${INSTAGRAM_CLIENT_ID:YOUR_INSTAGRAM_APP_ID}
+  client-secret: ${INSTAGRAM_CLIENT_SECRET:YOUR_INSTAGRAM_APP_SECRET}
   redirect-uri: ${INSTAGRAM_REDIRECT_URI:http://localhost:3000/auth/callback/instagram}
   graph-api-url: https://graph.instagram.com
   api-version: v21.0
