@@ -14,10 +14,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
-/**
- * Security Configuration with JWT Authentication Filter
- */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -40,7 +38,8 @@ public class SecurityConfig {
                     "/health",
                     "/static/**",
                     "/public/**",
-                    "/error"
+                    "/error",
+                    "/api/users/search" // Allow public user search
                 ).permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
@@ -55,8 +54,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow development and production origins
-        configuration.setAllowedOrigins(Arrays.asList(
+        // ✅ FIX: Explicit CORS origins for local development
+        configuration.setAllowedOrigins(List.of(
             "http://localhost:3000",
             "http://localhost:5173",
             "http://127.0.0.1:3000",
@@ -66,7 +65,7 @@ public class SecurityConfig {
         ));
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
