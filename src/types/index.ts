@@ -1,4 +1,3 @@
-// Core Types
 export interface User {
   id: string;
   name: string;
@@ -7,21 +6,18 @@ export interface User {
   profilePicture: string;
   planType: 'BASIC' | 'PRO';
   followers: number;
+  followerCount: number; // Backend uses this
   accountType: string;
   isVerified: boolean;
   rating: number;
   strikes: number;
-  dailyRequestsSent?: number;
-  dailyRequestsAccepted?: number;
+  strikeCount: number; // Backend uses this
+  dailyRequestsSent: number;
+  dailyRequestsAccepted: number;
   mediaItems: MediaItem[];
-}
-
-export interface MediaItem {
-  id: string;
-  url: string;
-  type: 'image' | 'video';
-  caption?: string;
-  thumbnailUrl?: string;
+  instagramId?: string;
+  instagramUsername?: string;
+  bio?: string;
 }
 
 export interface ShoutoutRequest {
@@ -34,7 +30,8 @@ export interface ShoutoutRequest {
   receiverName?: string;
   receiverUsername?: string;
   mediaId: string;
-  status: 'pending' | 'accepted' | 'completed' | 'expired' | 'rejected';
+  mediaType: 'STORY' | 'POST' | 'REEL';
+  status: 'PENDING' | 'ACCEPTED' | 'COMPLETED' | 'EXPIRED' | 'REJECTED';
   createdAt: string;
   completedAt?: string;
   expiresAt?: string;
@@ -47,12 +44,12 @@ export interface Exchange {
   requesterId: string;
   requesterName: string;
   requesterUsername: string;
-  requesterProfilePicture?: string;
+  requesterProfilePicture: string;
   acceptorId: string;
   acceptorName: string;
   acceptorUsername: string;
-  acceptorProfilePicture?: string;
-  status: 'INCOMPLETE' | 'COMPLETE' | 'PENDING_VERIFICATION';
+  acceptorProfilePicture: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELLED';
   timeStatus: 'LIVE' | 'EXPIRED';
   requesterPosted: boolean;
   acceptorPosted: boolean;
@@ -61,70 +58,11 @@ export interface Exchange {
   requesterPostUrl?: string;
   acceptorPostUrl?: string;
   expiresAt: string;
-  hoursRemaining?: number;
-  minutesRemaining?: number;
+  hoursRemaining: number;
+  minutesRemaining: number;
   rating?: number;
-  isPendingFromMe?: boolean;
-  canRate?: boolean;
+  isPendingFromMe: boolean;
+  canRate: boolean;
   myRating?: number;
-}
-
-export interface Notification {
-  id: string;
-  type: 'request' | 'acceptance' | 'completion' | 'warning' | 'strike' | 'system';
-  message: string;
-  title?: string;
   createdAt: string;
-  read: boolean;
-  relatedId?: string;
-  actionUrl?: string;
-}
-
-export interface AnalyticsSummary {
-  totalExchanges: number;
-  completedExchanges: number;
-  totalReach: number;
-  totalProfileVisits: number;
-  totalFollowersGained: number;
-  completionRate: number;
-  averageRating: number;
-  recentExchanges: Exchange[];
-}
-
-export interface PaymentDetails {
-  id: string;
-  transactionId: string;
-  amount: number;
-  currency: string;
-  gateway: 'RAZORPAY' | 'PAYPAL' | 'UPI' | 'PAYTM';
-  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
-  planType: string;
-  createdAt: string;
-}
-
-export interface SearchFilters {
-  query?: string;
-  genre?: string;
-  followers?: string;
-  repostType?: 'story' | 'post' | 'reel';
-  accountType?: string;
-  minRating?: number;
-}
-
-export interface PaginationParams {
-  page: number;
-  pageSize: number;
-  total: number;
-}
-
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  error?: string;
-}
-
-export interface ApiError {
-  message: string;
-  code: string;
-  details?: Record<string, any>;
 }
