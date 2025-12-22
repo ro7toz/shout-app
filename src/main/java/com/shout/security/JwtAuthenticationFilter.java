@@ -16,10 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Optional;
 
-/**
- * JWT Authentication Filter
- * Validates JWT tokens on protected routes and extracts user from token
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -47,19 +43,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         User user = userOptional.get();
 
                         // Check if user is banned
-                        if (user.getAccountBanned() != null && user.getAccountBanned()) {
+                        if (Boolean.TRUE.equals(user.getAccountBanned())) {
                             log.warn("🚫 Banned user attempted access: {}", user.getUsername());
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
                             response.getWriter().write("{\"error\":\"Account banned\",\"code\":\"ACCOUNT_BANNED\"}");
                             return;
                         }
 
-                        // Attach user to request
+                        // ✅ FIX: Attach BOTH user object AND userId
                         request.setAttribute("user", user);
                         request.setAttribute("userId", userId);
                         log.debug("✅ Authenticated user: {} (ID: {})", user.getUsername(), userId);
                     } else {
-                        log.warn("⚠️ User not found for token: {}", userId);
+                        log.warn("⚠️ User not found for valid token: {}", userId);
                     }
                 }
             }
@@ -81,6 +78,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                path.startsWith("/health") ||
                path.equals("/") ||
                path.startsWith("/static/") ||
-               path.startsWith("/public/");
+               path.startsWith("/public/") ||
+               path.startsWith("/error");
     }
 }
