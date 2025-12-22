@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/shoutdb
+    username: shoutuser
+    password: password123
+  
+  redis:
+    host: localhost
+    port: 6379
+
+jwt:
+  secret: development-jwt-secret-key-minimum-32-characters-long-do-not-use-in-production
+
+instagram:
+  client-id: ${INSTAGRAM_CLIENT_ID}
+  client-secret: ${INSTAGRAM_CLIENT_SECRET}
+  redirect-uri: http://localhost:3000/auth/callback/instagram
+
+logging:
+  level:
+    com.shout: DEBUG
