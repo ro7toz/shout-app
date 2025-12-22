@@ -7,38 +7,54 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 @RequiredArgsConstructor
 @Slf4j
 public class InstagramAuthController {
 
     private final InstagramAuthService instagramAuthService;
 
+    /**
+     * Instagram OAuth Callback - MAIN ENTRY POINT
+     * Called by Instagram after user authorizes app
+     */
     @GetMapping("/instagram/callback")
-    public ResponseEntity instagramCallback(
+    public ResponseEntity<?> instagramCallback(
             @RequestParam String code,
             @RequestParam(required = false) String state) {
         try {
+            log.info("📥 Instagram callback received with code: {}", code.substring(0, 10) + "...");
+            
             AuthResponse response = instagramAuthService.handleCallback(code, state);
-            return ResponseEntity.ok(response);
+            
+            if (response.isSuccess()) {
+                log.info("✅ Authentication successful for user: {}", response.getUser().getUsername());
+                return ResponseEntity.ok(response);
+            } else {
+                log.error("❌ Authentication failed: {}", response.getMessage());
+                return ResponseEntity.badRequest().body(response);
+            }
+            
         } catch (Exception e) {
-            log.error("Instagram callback failed", e);
+            log.error("💥 Instagram callback error", e);
             return ResponseEntity.badRequest().body(
-                Map.of("error", e.getMessage())
+                AuthResponse.builder()
+                    .success(false)
+                    .message("Authentication failed: " + e.getMessage())
+                    .build()
             );
         }
     }
 
-    @PostMapping("/instagram/exchange-token")
-    public ResponseEntity exchangeToken(@RequestBody Map request) {
-        try {
-            String shortToken = request.get("accessToken");
-            AuthResponse response = instagramAuthService.exchangeForLongLivedToken(shortToken);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    /**
+     * Health check endpoint
+     */
+    @GetMapping("/health")
+    public ResponseEntity<?> health() {
+        return ResponseEntity.ok(Map.of("status", "healthy"));
     }
 }
