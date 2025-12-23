@@ -1,4 +1,4 @@
-FROM maven:3.8.1-openjdk-17-slim as builder
+FROM maven:3.8-openjdk-18-slim as builder
 WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline
